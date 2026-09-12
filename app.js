@@ -45,7 +45,10 @@ const TRANSLATIONS = {
     missingHeading: "Keywords que faltan",
     noMatchedKeywords: "Ninguna keyword matcheó.",
     allMatchedKeywords: "¡Matchearon todas las keywords detectadas!",
-    coverLetterHeading: "Draft de cover letter (genérico, de prueba)",
+    comparisonHeading: "Resumen comparativo",
+    untitledJobLabel: (n) => `Vacante ${n}`,
+    comparisonWinner: ({ puesto, score, matchedList }) =>
+      `${puesto} es la mejor opción con un ${score}% de fit, gracias a coincidir en: ${matchedList}.`,
     namePlaceholder: "[Tu nombre]",
     rolePlaceholder: "[PUESTO]",
     companyPlaceholder: "[EMPRESA]",
@@ -79,7 +82,10 @@ ${nombre}`,
     missingHeading: "Missing keywords",
     noMatchedKeywords: "No keywords matched.",
     allMatchedKeywords: "All detected keywords matched!",
-    coverLetterHeading: "Cover letter draft (generic, for testing)",
+    comparisonHeading: "Comparative summary",
+    untitledJobLabel: (n) => `Job ${n}`,
+    comparisonWinner: ({ puesto, score, matchedList }) =>
+      `${puesto} is the best option with a ${score}% fit, thanks to matching on: ${matchedList}.`,
     namePlaceholder: "[Your name]",
     rolePlaceholder: "[POSITION]",
     companyPlaceholder: "[COMPANY]",
@@ -113,7 +119,10 @@ ${nombre}`,
     missingHeading: "Keyword mancanti",
     noMatchedKeywords: "Nessuna keyword corrisponde.",
     allMatchedKeywords: "Tutte le keyword rilevate corrispondono!",
-    coverLetterHeading: "Bozza di lettera di presentazione (generica, di prova)",
+    comparisonHeading: "Riepilogo comparativo",
+    untitledJobLabel: (n) => `Offerta ${n}`,
+    comparisonWinner: ({ puesto, score, matchedList }) =>
+      `${puesto} è la scelta migliore con un fit del ${score}%, grazie alla corrispondenza su: ${matchedList}.`,
     namePlaceholder: "[Il tuo nome]",
     rolePlaceholder: "[POSIZIONE]",
     companyPlaceholder: "[AZIENDA]",
@@ -147,7 +156,10 @@ ${nombre}`,
     missingHeading: "Palavras-chave faltantes",
     noMatchedKeywords: "Nenhuma palavra-chave correspondeu.",
     allMatchedKeywords: "Todas as palavras-chave detectadas corresponderam!",
-    coverLetterHeading: "Rascunho de carta de apresentação (genérico, de teste)",
+    comparisonHeading: "Resumo comparativo",
+    untitledJobLabel: (n) => `Vaga ${n}`,
+    comparisonWinner: ({ puesto, score, matchedList }) =>
+      `${puesto} é a melhor opção com ${score}% de fit, graças à coincidência em: ${matchedList}.`,
     namePlaceholder: "[Seu nome]",
     rolePlaceholder: "[CARGO]",
     companyPlaceholder: "[EMPRESA]",
@@ -175,8 +187,192 @@ ${nombre}`,
   },
 };
 
+// Traducciones de la UI estática (labels, placeholders, botones, errores de
+// validación) previa al análisis. Separado de TRANSLATIONS a propósito: ese
+// objeto cubre el contenido posterior al análisis (resultados, cover letter,
+// Excel) y no debe tocarse.
+const UI_TRANSLATIONS = {
+  es: {
+    pageTitle: "Job Fit Analyzer (prueba)",
+    languageSelectLabel: "Idioma",
+    appTitle: "Analizador de fit + cover letter",
+    appSubtitle: "Herramienta de prueba. Todo se procesa localmente en tu navegador, sin conexión a ninguna API real.",
+    jobTitleLabel: "Título",
+    jobTitlePlaceholder: "Nombre del rol + empresa (ej: Data Analyst - Globant)",
+    jobDescriptionLabel: "Descripción completa de la vacante *",
+    jobDescriptionPlaceholder: "Pegá aquí el texto completo de la descripción del puesto...",
+    jobLinkRefLabel: "Link de la vacante (opcional, solo referencia)",
+    jobLinkRefPlaceholder: "https://... (no se procesa)",
+    addJobButton: "+ Agregar Vacante",
+    maxJobsMessage: "Llegaste al máximo de 5 vacantes.",
+    removeJobButtonLabel: "Eliminar esta vacante",
+    cvFileLabel: "CV (PDF o Word) *",
+    dropzoneHint: "o arrastrá el archivo aquí",
+    extraInfoFileLabel: "Info propia (PDF, Word o TXT) *",
+    analyzeButton: "Analizar",
+    analyzeButtonLoading: "Analizando...",
+    mailJobSelectLabel: "Vacante para el envío de mail",
+    copyDraftButton: "Copiar draft",
+    copyFeedback: "Copiado ✓",
+    trackingHeading: "Seguimiento de postulaciones",
+    existingExcelLabel: "Subir Excel existente (opcional, para agregar esta postulación sin perder las anteriores)",
+    downloadTrackingButton: "Descargar seguimiento",
+    errors: {
+      jobDescriptionRequired: "Pegá el texto completo de la descripción de la vacante.",
+      cvFileRequired: "Subí tu CV en formato PDF o Word.",
+      cvFileInvalidType: "El CV debe ser un archivo PDF o Word (.doc/.docx).",
+      extraInfoFileRequired: "Subí un archivo con tu información propia (PDF, Word o TXT).",
+      extraInfoFileInvalidType: "El archivo de información propia debe ser PDF, Word (.doc/.docx) o TXT.",
+      trackingNoAnalysis: "Primero analizá una vacante para poder registrarla en el seguimiento.",
+      trackingReadError: (msg) => `No se pudo leer el Excel existente: ${msg}`,
+      submitProcessingError: (msg) => `No se pudo procesar alguno de los archivos: ${msg}`,
+      copyFailed: "No se pudo copiar al portapapeles.",
+      docNotSupported: "Los archivos .doc (Word 97-2003) no se pueden leer en el navegador. Guardá el archivo como .docx o .pdf.",
+      unsupportedFormat: (ext) => `Formato no soportado: .${ext}`,
+    },
+  },
+  en: {
+    pageTitle: "Job Fit Analyzer (test)",
+    languageSelectLabel: "Language",
+    appTitle: "Fit analyzer + cover letter",
+    appSubtitle: "Test tool. Everything is processed locally in your browser, with no connection to any real API.",
+    jobTitleLabel: "Title",
+    jobTitlePlaceholder: "Role name + company (e.g. Data Analyst - Globant)",
+    jobDescriptionLabel: "Full job description *",
+    jobDescriptionPlaceholder: "Paste the full job description text here...",
+    jobLinkRefLabel: "Job link (optional, reference only)",
+    jobLinkRefPlaceholder: "https://... (not processed)",
+    addJobButton: "+ Add Job",
+    maxJobsMessage: "You've reached the maximum of 5 jobs.",
+    removeJobButtonLabel: "Remove this job",
+    cvFileLabel: "CV (PDF or Word) *",
+    dropzoneHint: "or drag the file here",
+    extraInfoFileLabel: "Your info (PDF, Word or TXT) *",
+    analyzeButton: "Analyze",
+    analyzeButtonLoading: "Analyzing...",
+    mailJobSelectLabel: "Job for sending the email",
+    copyDraftButton: "Copy draft",
+    copyFeedback: "Copied ✓",
+    trackingHeading: "Application tracking",
+    existingExcelLabel: "Upload existing Excel (optional, to add this application without losing previous ones)",
+    downloadTrackingButton: "Download tracking",
+    errors: {
+      jobDescriptionRequired: "Paste the full job description text.",
+      cvFileRequired: "Upload your CV in PDF or Word format.",
+      cvFileInvalidType: "The CV must be a PDF or Word file (.doc/.docx).",
+      extraInfoFileRequired: "Upload a file with your own information (PDF, Word or TXT).",
+      extraInfoFileInvalidType: "The personal info file must be PDF, Word (.doc/.docx) or TXT.",
+      trackingNoAnalysis: "First analyze a job posting so it can be tracked.",
+      trackingReadError: (msg) => `Could not read the existing Excel file: ${msg}`,
+      submitProcessingError: (msg) => `Could not process one of the files: ${msg}`,
+      copyFailed: "Could not copy to clipboard.",
+      docNotSupported: ".doc files (Word 97-2003) cannot be read in the browser. Save the file as .docx or .pdf.",
+      unsupportedFormat: (ext) => `Unsupported format: .${ext}`,
+    },
+  },
+  it: {
+    pageTitle: "Job Fit Analyzer (prova)",
+    languageSelectLabel: "Lingua",
+    appTitle: "Analizzatore di fit + lettera di presentazione",
+    appSubtitle: "Strumento di prova. Tutto viene elaborato localmente nel tuo browser, senza connessione a nessuna API reale.",
+    jobTitleLabel: "Titolo",
+    jobTitlePlaceholder: "Nome del ruolo + azienda (es: Data Analyst - Globant)",
+    jobDescriptionLabel: "Descrizione completa dell'offerta di lavoro *",
+    jobDescriptionPlaceholder: "Incolla qui il testo completo della descrizione della posizione...",
+    jobLinkRefLabel: "Link dell'offerta (opzionale, solo riferimento)",
+    jobLinkRefPlaceholder: "https://... (non elaborato)",
+    addJobButton: "+ Aggiungi offerta",
+    maxJobsMessage: "Hai raggiunto il massimo di 5 offerte.",
+    removeJobButtonLabel: "Rimuovi questa offerta",
+    cvFileLabel: "CV (PDF o Word) *",
+    dropzoneHint: "o trascina il file qui",
+    extraInfoFileLabel: "Informazioni personali (PDF, Word o TXT) *",
+    analyzeButton: "Analizza",
+    analyzeButtonLoading: "Analizzando...",
+    mailJobSelectLabel: "Offerta per l'invio dell'email",
+    copyDraftButton: "Copia bozza",
+    copyFeedback: "Copiato ✓",
+    trackingHeading: "Monitoraggio delle candidature",
+    existingExcelLabel: "Carica Excel esistente (opzionale, per aggiungere questa candidatura senza perdere le precedenti)",
+    downloadTrackingButton: "Scarica monitoraggio",
+    errors: {
+      jobDescriptionRequired: "Incolla il testo completo della descrizione dell'offerta di lavoro.",
+      cvFileRequired: "Carica il tuo CV in formato PDF o Word.",
+      cvFileInvalidType: "Il CV deve essere un file PDF o Word (.doc/.docx).",
+      extraInfoFileRequired: "Carica un file con le tue informazioni personali (PDF, Word o TXT).",
+      extraInfoFileInvalidType: "Il file delle informazioni personali deve essere PDF, Word (.doc/.docx) o TXT.",
+      trackingNoAnalysis: "Analizza prima un'offerta di lavoro per poterla registrare nel monitoraggio.",
+      trackingReadError: (msg) => `Impossibile leggere il file Excel esistente: ${msg}`,
+      submitProcessingError: (msg) => `Impossibile elaborare uno dei file: ${msg}`,
+      copyFailed: "Impossibile copiare negli appunti.",
+      docNotSupported: "I file .doc (Word 97-2003) non possono essere letti nel browser. Salva il file come .docx o .pdf.",
+      unsupportedFormat: (ext) => `Formato non supportato: .${ext}`,
+    },
+  },
+  pt: {
+    pageTitle: "Job Fit Analyzer (teste)",
+    languageSelectLabel: "Idioma",
+    appTitle: "Analisador de fit + carta de apresentação",
+    appSubtitle: "Ferramenta de teste. Tudo é processado localmente no seu navegador, sem conexão com nenhuma API real.",
+    jobTitleLabel: "Título",
+    jobTitlePlaceholder: "Nome da função + empresa (ex: Data Analyst - Globant)",
+    jobDescriptionLabel: "Descrição completa da vaga *",
+    jobDescriptionPlaceholder: "Cole aqui o texto completo da descrição da vaga...",
+    jobLinkRefLabel: "Link da vaga (opcional, apenas referência)",
+    jobLinkRefPlaceholder: "https://... (não processado)",
+    addJobButton: "+ Adicionar Vaga",
+    maxJobsMessage: "Você atingiu o máximo de 5 vagas.",
+    removeJobButtonLabel: "Remover esta vaga",
+    cvFileLabel: "Currículo (PDF ou Word) *",
+    dropzoneHint: "ou arraste o arquivo aqui",
+    extraInfoFileLabel: "Informações próprias (PDF, Word ou TXT) *",
+    analyzeButton: "Analisar",
+    analyzeButtonLoading: "Analisando...",
+    mailJobSelectLabel: "Vaga para o envio do e-mail",
+    copyDraftButton: "Copiar rascunho",
+    copyFeedback: "Copiado ✓",
+    trackingHeading: "Acompanhamento de candidaturas",
+    existingExcelLabel: "Enviar Excel existente (opcional, para adicionar esta candidatura sem perder as anteriores)",
+    downloadTrackingButton: "Baixar acompanhamento",
+    errors: {
+      jobDescriptionRequired: "Cole o texto completo da descrição da vaga.",
+      cvFileRequired: "Envie seu currículo em formato PDF ou Word.",
+      cvFileInvalidType: "O currículo deve ser um arquivo PDF ou Word (.doc/.docx).",
+      extraInfoFileRequired: "Envie um arquivo com suas informações próprias (PDF, Word ou TXT).",
+      extraInfoFileInvalidType: "O arquivo de informações próprias deve ser PDF, Word (.doc/.docx) ou TXT.",
+      trackingNoAnalysis: "Primeiro analise uma vaga para poder registrá-la no acompanhamento.",
+      trackingReadError: (msg) => `Não foi possível ler o Excel existente: ${msg}`,
+      submitProcessingError: (msg) => `Não foi possível processar algum dos arquivos: ${msg}`,
+      copyFailed: "Não foi possível copiar para a área de transferência.",
+      docNotSupported: "Arquivos .doc (Word 97-2003) não podem ser lidos no navegador. Salve o arquivo como .docx ou .pdf.",
+      unsupportedFormat: (ext) => `Formato não suportado: .${ext}`,
+    },
+  },
+};
+
 function getCurrentLanguage() {
   return document.getElementById("languageSelect").value;
+}
+
+function applyTranslations(lang) {
+  const t = UI_TRANSLATIONS[lang];
+
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const value = t[el.getAttribute("data-i18n")];
+    if (typeof value === "string") el.textContent = value;
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const value = t[el.getAttribute("data-i18n-placeholder")];
+    if (typeof value === "string") el.placeholder = value;
+  });
+
+  document.documentElement.lang = lang;
+
+  const analyzeBtn = document.getElementById("analyzeBtn");
+  if (!analyzeBtn.disabled) {
+    analyzeBtn.textContent = t.analyzeButton;
+  }
 }
 
 let loadingIntervalId = null;
@@ -252,15 +448,15 @@ async function extractDocxText(file) {
   return result.value;
 }
 
-async function extractTextFromFile(file) {
+async function extractTextFromFile(file, lang) {
   const ext = file.name.split(".").pop().toLowerCase();
   if (ext === "pdf") return extractPdfText(file);
   if (ext === "txt") return file.text();
   if (ext === "docx") return extractDocxText(file);
   if (ext === "doc") {
-    throw new Error("Los archivos .doc (Word 97-2003) no se pueden leer en el navegador. Guardá el archivo como .docx o .pdf.");
+    throw new Error(UI_TRANSLATIONS[lang].errors.docNotSupported);
   }
-  throw new Error(`Formato no soportado: .${ext}`);
+  throw new Error(UI_TRANSLATIONS[lang].errors.unsupportedFormat(ext));
 }
 
 function normalize(text) {
@@ -333,18 +529,20 @@ function buildCoverLetter(jobText, cvText, fitResult, lang) {
   return t.coverLetter({ nombre, empresa, puesto, matchedList });
 }
 
-function buildMailSubject(jobText, cvText, lang) {
-  const puesto = guessRole(jobText, lang);
+function buildMailSubject(title, cvText, lang) {
   const nombre = guessCandidateName(cvText, lang);
-  return `${puesto} - ${nombre}`;
+  return `${title} - ${nombre}`;
 }
 
 const TRACKING_FILENAME = "seguimiento-postulaciones.xlsx";
 const TRACKING_FIELD_ORDER = ["fecha", "empresa", "puesto", "estado", "resultado"];
 
-let lastJobText = null;
-let lastFitResult = null;
-let lastMailSubject = null;
+const MAX_JOB_BLOCKS = 5;
+let jobIdCounter = 0;
+const jobBlocks = []; // [{ id, container, titleInput, descTextarea, descError, linkInput, removeBtn }]
+
+let lastAnalyses = []; // [{ title, rawTitle, jobText, fitResult }]
+let lastCvText = null;
 
 function buildTrackingRow(jobText, fitResult, lang) {
   const t = TRANSLATIONS[lang];
@@ -402,8 +600,10 @@ function hideTrackingError() {
 async function handleDownloadTracking() {
   hideTrackingError();
 
-  if (!lastJobText || !lastFitResult) {
-    showTrackingError("Primero analizá una vacante para poder registrarla en el seguimiento.");
+  const lang = getCurrentLanguage();
+
+  if (lastAnalyses.length === 0) {
+    showTrackingError(UI_TRANSLATIONS[lang].errors.trackingNoAnalysis);
     return;
   }
 
@@ -412,15 +612,14 @@ async function handleDownloadTracking() {
   downloadTrackingBtn.disabled = true;
 
   try {
-    const lang = getCurrentLanguage();
     let rows = [];
     if (existingFile) {
       rows = await readExistingTrackingRows(existingFile);
     }
-    rows.push(buildTrackingRow(lastJobText, lastFitResult, lang));
+    rows.push(...lastAnalyses.map((analysis) => buildTrackingRow(analysis.jobText, analysis.fitResult, lang)));
     downloadTrackingWorkbook(rows, lang);
   } catch (err) {
-    showTrackingError(`No se pudo leer el Excel existente: ${err.message}`);
+    showTrackingError(UI_TRANSLATIONS[lang].errors.trackingReadError(err.message));
   } finally {
     downloadTrackingBtn.disabled = false;
   }
@@ -457,37 +656,118 @@ const PROGRESS_FILL_VARIANT_CLASSES = {
   indeterminado: "bg-slate-400",
 };
 
-function renderResults(fitResult, coverLetterText, lang) {
+function buildComparisonSummary(analyses, lang) {
+  const t = TRANSLATIONS[lang];
+  const ranked = analyses
+    .map((analysis, index) => ({ analysis, index }))
+    .sort((a, b) => b.analysis.fitResult.score - a.analysis.fitResult.score);
+
+  document.getElementById("comparisonHeading").textContent = t.comparisonHeading;
+
+  const comparisonList = document.getElementById("comparisonList");
+  comparisonList.innerHTML = "";
+
+  ranked.forEach((entry, rank) => {
+    const li = document.createElement("li");
+    li.className = "rounded-lg bg-white p-3 text-sm ring-1 ring-slate-200";
+
+    const line = document.createElement("p");
+    line.className = "font-semibold text-slate-800";
+    line.textContent = `${rank + 1}. ${entry.analysis.title} — ${entry.analysis.fitResult.score}% (${t.fitLabels[entry.analysis.fitResult.labelKey]})`;
+    li.appendChild(line);
+
+    if (rank === 0) {
+      const matchedList = entry.analysis.fitResult.matched.slice(0, 5).join(", ") || t.noMatchedFallback;
+      const justification = document.createElement("p");
+      justification.className = "mt-1 text-slate-600";
+      justification.textContent = t.comparisonWinner({
+        puesto: entry.analysis.title,
+        score: entry.analysis.fitResult.score,
+        matchedList,
+      });
+      li.appendChild(justification);
+    }
+
+    comparisonList.appendChild(li);
+  });
+}
+
+function renderJobDetailCard(analysis, lang, showTitle) {
+  const t = TRANSLATIONS[lang];
+  const fragment = document.getElementById("jobDetailTemplate").content.cloneNode(true);
+  const card = fragment.querySelector('[data-role="jobDetailCard"]');
+
+  const titleEl = card.querySelector('[data-role="jobDetailTitle"]');
+  titleEl.textContent = analysis.title;
+  titleEl.hidden = !showTitle;
+
+  const fitScoreValue = card.querySelector('[data-role="fitScoreValue"]');
+  const fitLabelBadge = card.querySelector('[data-role="fitLabelBadge"]');
+  const progressBarFill = card.querySelector('[data-role="progressBarFill"]');
+  const matchedHeading = card.querySelector('[data-role="matchedHeading"]');
+  const missingHeading = card.querySelector('[data-role="missingHeading"]');
+  const matchedKeywordsList = card.querySelector('[data-role="matchedKeywordsList"]');
+  const missingKeywordsList = card.querySelector('[data-role="missingKeywordsList"]');
+
+  matchedHeading.textContent = t.matchedHeading;
+  missingHeading.textContent = t.missingHeading;
+
+  fitScoreValue.textContent = `${analysis.fitResult.score}%`;
+  fitLabelBadge.textContent = t.fitLabels[analysis.fitResult.labelKey];
+  fitLabelBadge.className = `inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${BADGE_VARIANT_CLASSES[analysis.fitResult.labelKey]}`;
+  progressBarFill.className = `h-full rounded-full transition-all duration-300 ease-in-out ${PROGRESS_FILL_VARIANT_CLASSES[analysis.fitResult.labelKey]}`;
+  progressBarFill.style.width = `${analysis.fitResult.score}%`;
+
+  renderKeywordList(matchedKeywordsList, analysis.fitResult.matched, t.noMatchedKeywords,
+    "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800");
+  renderKeywordList(missingKeywordsList, analysis.fitResult.missing, t.allMatchedKeywords,
+    "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600");
+
+  return card;
+}
+
+function populateMailJobSelect(analyses) {
+  const select = document.getElementById("mailJobSelect");
+  select.innerHTML = "";
+  analyses.forEach((analysis, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = analysis.title;
+    select.appendChild(option);
+  });
+}
+
+function getSelectedAnalysis() {
+  const select = document.getElementById("mailJobSelect");
+  return lastAnalyses[Number(select.value)];
+}
+
+function renderResults(analyses, lang) {
   const t = TRANSLATIONS[lang];
 
-  const fitScoreValue = document.getElementById("fitScoreValue");
-  const fitLabelBadge = document.getElementById("fitLabelBadge");
-  const progressBarFill = document.getElementById("progressBarFill");
-  const matchedKeywordsList = document.getElementById("matchedKeywordsList");
-  const missingKeywordsList = document.getElementById("missingKeywordsList");
-  const coverLetterOutput = document.getElementById("coverLetterOutput");
-  const resultsSection = document.getElementById("resultsSection");
-
   document.getElementById("resultsHeading").textContent = t.resultsHeading;
-  document.getElementById("matchedHeading").textContent = t.matchedHeading;
-  document.getElementById("missingHeading").textContent = t.missingHeading;
-  document.getElementById("coverLetterHeading").textContent = t.coverLetterHeading;
+
+  const comparisonSummary = document.getElementById("comparisonSummary");
+  if (analyses.length >= 2) {
+    buildComparisonSummary(analyses, lang);
+    comparisonSummary.hidden = false;
+  } else {
+    comparisonSummary.hidden = true;
+  }
+
+  const resultsDetailContainer = document.getElementById("resultsDetailContainer");
+  resultsDetailContainer.innerHTML = "";
+  const showTitle = analyses.length > 1 || Boolean(analyses[0] && analyses[0].rawTitle);
+  analyses.forEach((analysis) => {
+    resultsDetailContainer.appendChild(renderJobDetailCard(analysis, lang, showTitle));
+  });
+
   document.getElementById("sendGmailBtn").textContent = t.sendGmailLabel;
   document.getElementById("sendOtherEmailBtn").textContent = t.sendOtherEmailLabel;
 
-  fitScoreValue.textContent = `${fitResult.score}%`;
-  fitLabelBadge.textContent = t.fitLabels[fitResult.labelKey];
-  fitLabelBadge.className = `inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${BADGE_VARIANT_CLASSES[fitResult.labelKey]}`;
-  progressBarFill.className = `h-full rounded-full transition-all duration-300 ease-in-out ${PROGRESS_FILL_VARIANT_CLASSES[fitResult.labelKey]}`;
-  progressBarFill.style.width = `${fitResult.score}%`;
+  populateMailJobSelect(analyses);
 
-  renderKeywordList(matchedKeywordsList, fitResult.matched, t.noMatchedKeywords,
-    "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800");
-  renderKeywordList(missingKeywordsList, fitResult.missing, t.allMatchedKeywords,
-    "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600");
-
-  coverLetterOutput.value = coverLetterText;
-
+  const resultsSection = document.getElementById("resultsSection");
   revealWithFade(resultsSection);
   resultsSection.scrollIntoView({ behavior: "smooth" });
 }
@@ -507,7 +787,6 @@ const CV_EXTENSIONS = ["pdf", "doc", "docx"];
 const EXTRA_INFO_EXTENSIONS = ["pdf", "doc", "docx", "txt"];
 
 const FIELD_ERROR_MAP = {
-  jobDescription: { inputId: "jobDescription", errorId: "jobDescriptionError" },
   cvFile: { inputId: "cvDropzone", errorId: "cvFileError" },
   extraInfoFile: { inputId: "extraInfoDropzone", errorId: "extraInfoFileError" },
 };
@@ -546,108 +825,227 @@ function applyValidationErrors(errors) {
   Object.entries(errors).forEach(([fieldKey, message]) => setFieldInvalid(fieldKey, message));
 }
 
-function validateForm(jobDescription, cvFile, extraInfoFile) {
+function validateForm(cvFile, extraInfoFile, lang) {
   const errors = {};
-
-  if (!jobDescription.trim()) {
-    errors.jobDescription = "Pegá el texto completo de la descripción de la vacante.";
-  }
+  const t = UI_TRANSLATIONS[lang].errors;
 
   if (!cvFile) {
-    errors.cvFile = "Subí tu CV en formato PDF o Word.";
+    errors.cvFile = t.cvFileRequired;
   } else {
     const cvExt = cvFile.name.split(".").pop().toLowerCase();
     if (!CV_EXTENSIONS.includes(cvExt)) {
-      errors.cvFile = "El CV debe ser un archivo PDF o Word (.doc/.docx).";
+      errors.cvFile = t.cvFileInvalidType;
     }
   }
 
   if (!extraInfoFile) {
-    errors.extraInfoFile = "Subí un archivo con tu información propia (PDF, Word o TXT).";
+    errors.extraInfoFile = t.extraInfoFileRequired;
   } else {
     const extraExt = extraInfoFile.name.split(".").pop().toLowerCase();
     if (!EXTRA_INFO_EXTENSIONS.includes(extraExt)) {
-      errors.extraInfoFile = "El archivo de información propia debe ser PDF, Word (.doc/.docx) o TXT.";
+      errors.extraInfoFile = t.extraInfoFileInvalidType;
     }
   }
 
   return errors;
 }
 
+function updateJobBlocksUI() {
+  const showRemove = jobBlocks.length > 1;
+  jobBlocks.forEach((block) => {
+    // El botón usa la clase "flex" de Tailwind, que gana la cascada sobre
+    // el estilo nativo de [hidden] (display:none) porque el <style> del CDN
+    // se inyecta después de la hoja de estilos del user agent — hay que
+    // sacarle también la clase "flex" para que quede realmente oculto.
+    block.removeBtn.hidden = !showRemove;
+    block.removeBtn.classList.toggle("flex", showRemove);
+  });
+
+  const atMax = jobBlocks.length >= MAX_JOB_BLOCKS;
+  document.getElementById("addJobBtn").disabled = atMax;
+  document.getElementById("maxJobsMessage").hidden = !atMax;
+}
+
+function setJobBlockInvalid(block, message) {
+  block.descTextarea.classList.remove(...VALID_FIELD_CLASSES);
+  block.descTextarea.classList.add(...INVALID_FIELD_CLASSES);
+  block.descTextarea.setAttribute("aria-invalid", "true");
+  block.descError.textContent = message;
+  block.descError.hidden = false;
+}
+
+function clearJobBlockInvalid(block) {
+  block.descTextarea.classList.remove(...INVALID_FIELD_CLASSES);
+  block.descTextarea.classList.add(...VALID_FIELD_CLASSES);
+  block.descTextarea.removeAttribute("aria-invalid");
+  block.descError.hidden = true;
+  block.descError.textContent = "";
+}
+
+function validateJobBlocks(lang) {
+  const message = UI_TRANSLATIONS[lang].errors.jobDescriptionRequired;
+  let firstInvalid = null;
+  jobBlocks.forEach((block) => {
+    if (!block.descTextarea.value.trim()) {
+      setJobBlockInvalid(block, message);
+      if (!firstInvalid) firstInvalid = block;
+    } else {
+      clearJobBlockInvalid(block);
+    }
+  });
+  return firstInvalid;
+}
+
+function getJobBlockData() {
+  return jobBlocks.map((block) => ({
+    title: block.titleInput.value.trim(),
+    description: block.descTextarea.value,
+    link: block.linkInput.value.trim(),
+  }));
+}
+
+function resolveJobTitle(title, index, lang) {
+  return title || TRANSLATIONS[lang].untitledJobLabel(index + 1);
+}
+
+function createJobBlock() {
+  if (jobBlocks.length >= MAX_JOB_BLOCKS) return;
+
+  jobIdCounter += 1;
+  const id = jobIdCounter;
+
+  const fragment = document.getElementById("jobBlockTemplate").content.cloneNode(true);
+  const container = fragment.querySelector('[data-role="jobBlock"]');
+
+  const titleLabelEl = container.querySelector('[data-role="jobTitleLabelEl"]');
+  const titleInput = container.querySelector('[data-role="jobTitleInput"]');
+  const descLabelEl = container.querySelector('[data-role="jobDescriptionLabelEl"]');
+  const descTextarea = container.querySelector('[data-role="jobDescriptionInput"]');
+  const descError = container.querySelector('[data-role="jobDescriptionError"]');
+  const linkLabelEl = container.querySelector('[data-role="jobLinkLabelEl"]');
+  const linkInput = container.querySelector('[data-role="jobLinkInput"]');
+  const removeBtn = container.querySelector('[data-role="removeJobBtn"]');
+
+  titleInput.id = `jobTitle-${id}`;
+  titleLabelEl.setAttribute("for", titleInput.id);
+  descTextarea.id = `jobDescription-${id}`;
+  descLabelEl.setAttribute("for", descTextarea.id);
+  descError.id = `jobDescriptionError-${id}`;
+  descTextarea.setAttribute("aria-describedby", descError.id);
+  linkInput.id = `jobLinkRef-${id}`;
+  linkLabelEl.setAttribute("for", linkInput.id);
+
+  const block = { id, container, titleInput, descTextarea, descError, linkInput, removeBtn };
+
+  descTextarea.addEventListener("input", () => clearJobBlockInvalid(block));
+  removeBtn.addEventListener("click", () => removeJobBlock(id));
+
+  document.getElementById("jobBlocksContainer").appendChild(container);
+  jobBlocks.push(block);
+
+  applyTranslations(getCurrentLanguage());
+  updateJobBlocksUI();
+}
+
+function removeJobBlock(id) {
+  const index = jobBlocks.findIndex((block) => block.id === id);
+  if (index === -1) return;
+  jobBlocks[index].container.remove();
+  jobBlocks.splice(index, 1);
+  updateJobBlocksUI();
+}
+
 async function handleSubmit(event) {
   event.preventDefault();
   hideFormError();
 
-  const jobDescription = document.getElementById("jobDescription").value;
   const cvFile = document.getElementById("cvFile").files[0];
   const extraInfoFile = document.getElementById("extraInfoFile").files[0];
+  const lang = getCurrentLanguage();
 
-  const errors = validateForm(jobDescription, cvFile, extraInfoFile);
-  if (Object.keys(errors).length > 0) {
-    applyValidationErrors(errors);
-    const firstFieldKey = Object.keys(errors)[0];
-    document.getElementById(FIELD_ERROR_MAP[firstFieldKey].inputId)
-      .scrollIntoView({ behavior: "smooth", block: "center" });
+  const firstInvalidJobBlock = validateJobBlocks(lang);
+  const fileErrors = validateForm(cvFile, extraInfoFile, lang);
+  applyValidationErrors(fileErrors);
+
+  if (firstInvalidJobBlock || Object.keys(fileErrors).length > 0) {
+    if (firstInvalidJobBlock) {
+      firstInvalidJobBlock.container.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      const firstFieldKey = Object.keys(fileErrors)[0];
+      document.getElementById(FIELD_ERROR_MAP[firstFieldKey].inputId)
+        .scrollIntoView({ behavior: "smooth", block: "center" });
+    }
     return;
   }
-  clearAllFieldErrors();
 
   const analyzeBtn = document.getElementById("analyzeBtn");
   analyzeBtn.disabled = true;
-  analyzeBtn.textContent = "Analizando...";
+  analyzeBtn.textContent = UI_TRANSLATIONS[lang].analyzeButtonLoading;
 
-  const lang = getCurrentLanguage();
   showLoading(lang);
 
   try {
     const [cvText, extraInfoText] = await Promise.all([
-      extractTextFromFile(cvFile),
-      extractTextFromFile(extraInfoFile),
+      extractTextFromFile(cvFile, lang),
+      extractTextFromFile(extraInfoFile, lang),
     ]);
 
     const combinedProfileText = `${cvText}\n${extraInfoText}`;
-    const fitResult = computeFit(jobDescription, combinedProfileText);
-    const coverLetterText = buildCoverLetter(jobDescription, cvText, fitResult, lang);
+    const jobsData = getJobBlockData();
+    const analyses = jobsData.map((job, index) => ({
+      title: resolveJobTitle(job.title, index, lang),
+      rawTitle: job.title,
+      jobText: job.description,
+      fitResult: computeFit(job.description, combinedProfileText),
+    }));
 
-    lastJobText = jobDescription;
-    lastFitResult = fitResult;
-    lastMailSubject = buildMailSubject(jobDescription, cvText, lang);
+    lastAnalyses = analyses;
+    lastCvText = cvText;
 
     hideLoading();
-    renderResults(fitResult, coverLetterText, lang);
+    renderResults(analyses, lang);
   } catch (err) {
     hideLoading();
-    showFormError(`No se pudo procesar alguno de los archivos: ${err.message}`);
+    showFormError(UI_TRANSLATIONS[getCurrentLanguage()].errors.submitProcessingError(err.message));
   } finally {
     analyzeBtn.disabled = false;
-    analyzeBtn.textContent = "Analizar fit y generar cover letter";
+    analyzeBtn.textContent = UI_TRANSLATIONS[getCurrentLanguage()].analyzeButton;
   }
 }
 
 async function handleCopyClick() {
-  const coverLetterOutput = document.getElementById("coverLetterOutput");
+  if (lastAnalyses.length === 0) return;
+  const lang = getCurrentLanguage();
+  const analysis = getSelectedAnalysis();
+  const draftText = buildCoverLetter(analysis.jobText, lastCvText, analysis.fitResult, lang);
   const copyFeedback = document.getElementById("copyFeedback");
   try {
-    await navigator.clipboard.writeText(coverLetterOutput.value);
+    await navigator.clipboard.writeText(draftText);
     copyFeedback.hidden = false;
     setTimeout(() => {
       copyFeedback.hidden = true;
     }, 2000);
   } catch (err) {
-    showFormError("No se pudo copiar al portapapeles.");
+    showFormError(UI_TRANSLATIONS[lang].errors.copyFailed);
   }
 }
 
 function handleSendGmailClick() {
-  const subject = lastMailSubject || "";
-  const body = document.getElementById("coverLetterOutput").value;
+  if (lastAnalyses.length === 0) return;
+  const lang = getCurrentLanguage();
+  const analysis = getSelectedAnalysis();
+  const subject = buildMailSubject(analysis.title, lastCvText, lang);
+  const body = buildCoverLetter(analysis.jobText, lastCvText, analysis.fitResult, lang);
   const url = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.open(url, "_blank", "noopener");
 }
 
 function handleSendOtherEmailClick() {
-  const subject = lastMailSubject || "";
-  const body = document.getElementById("coverLetterOutput").value;
+  if (lastAnalyses.length === 0) return;
+  const lang = getCurrentLanguage();
+  const analysis = getSelectedAnalysis();
+  const subject = buildMailSubject(analysis.title, lastCvText, lang);
+  const body = buildCoverLetter(analysis.jobText, lastCvText, analysis.fitResult, lang);
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -680,12 +1078,17 @@ function setupDropzone(dropzoneEl, inputEl, fieldKey) {
 }
 
 document.getElementById("jobForm").addEventListener("submit", handleSubmit);
-document.getElementById("copyCoverLetterBtn").addEventListener("click", handleCopyClick);
+document.getElementById("copyDraftBtn").addEventListener("click", handleCopyClick);
 document.getElementById("sendGmailBtn").addEventListener("click", handleSendGmailClick);
 document.getElementById("sendOtherEmailBtn").addEventListener("click", handleSendOtherEmailClick);
 document.getElementById("downloadTrackingBtn").addEventListener("click", handleDownloadTracking);
-document.getElementById("jobDescription").addEventListener("input", () => clearFieldInvalid("jobDescription"));
+document.getElementById("addJobBtn").addEventListener("click", createJobBlock);
 document.getElementById("cvFile").addEventListener("change", () => clearFieldInvalid("cvFile"));
 document.getElementById("extraInfoFile").addEventListener("change", () => clearFieldInvalid("extraInfoFile"));
 setupDropzone(document.getElementById("cvDropzone"), document.getElementById("cvFile"), "cvFile");
 setupDropzone(document.getElementById("extraInfoDropzone"), document.getElementById("extraInfoFile"), "extraInfoFile");
+
+createJobBlock();
+
+applyTranslations(getCurrentLanguage());
+document.getElementById("languageSelect").addEventListener("change", () => applyTranslations(getCurrentLanguage()));
