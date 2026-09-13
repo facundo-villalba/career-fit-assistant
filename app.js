@@ -36,10 +36,100 @@ const FIT_THRESHOLD_HIGH = 70;
 const FIT_THRESHOLD_MEDIUM = 40;
 const LOADING_STEP_INTERVAL_MS = 900;
 
+// Heurísticas de "fit breakdown" por dimensión (seniority/industria/
+// modalidad), mismo enfoque simulado por keywords que ya usa
+// extractKeywords/tokenize para "skills" — listas acotadas por idioma,
+// no un modelo real. Los textos se comparan ya normalizados (minúsculas,
+// sin tildes) con normalize(), así que las listas no llevan tildes.
+const SENIORITY_TERMS = {
+  es: {
+    1: ["junior", "trainee", "sin experiencia", "recien egresado", "recien recibido", "entry level"],
+    2: ["semi senior", "semi-senior", "ssr", "intermedio", "mid level"],
+    3: ["senior", "lider", "lead", "gerente", "manager", "director", "jefe"],
+  },
+  en: {
+    1: ["junior", "trainee", "entry level", "entry-level", "no experience required"],
+    2: ["mid level", "mid-level", "intermediate", "semi senior", "semi-senior"],
+    3: ["senior", "lead", "manager", "director", "head of"],
+  },
+  it: {
+    1: ["junior", "tirocinante", "neolaureato", "entry level"],
+    2: ["semi senior", "semi-senior", "intermedio", "mid level"],
+    3: ["senior", "lead", "responsabile", "manager", "direttore", "capo"],
+  },
+  pt: {
+    1: ["junior", "estagiario", "recem formado", "entry level"],
+    2: ["pleno", "semi senior", "semi-senior", "intermediario"],
+    3: ["senior", "lider", "gerente", "diretor", "coordenador"],
+  },
+};
+
+const INDUSTRY_TERMS = {
+  es: ["tecnologia", "finanzas", "marketing", "retail", "salud", "educacion", "manufactura", "ventas", "legal", "recursos humanos", "logistica", "construccion", "turismo", "energia", "telecomunicaciones", "consultoria", "seguros", "inmobiliario", "gastronomia", "moda", "deportivo", "deportes", "fitness"],
+  en: ["technology", "finance", "marketing", "retail", "healthcare", "education", "manufacturing", "sales", "legal", "human resources", "logistics", "construction", "tourism", "energy", "telecommunications", "consulting", "insurance", "real estate", "hospitality", "fashion", "sports", "fitness"],
+  it: ["tecnologia", "finanza", "marketing", "vendita al dettaglio", "sanita", "istruzione", "manifattura", "vendite", "legale", "risorse umane", "logistica", "edilizia", "turismo", "energia", "telecomunicazioni", "consulenza", "assicurazioni", "immobiliare", "ristorazione", "moda", "sport", "fitness"],
+  pt: ["tecnologia", "financas", "marketing", "varejo", "saude", "educacao", "manufatura", "vendas", "juridico", "recursos humanos", "logistica", "construcao", "turismo", "energia", "telecomunicacoes", "consultoria", "seguros", "imobiliario", "hotelaria", "moda", "esportes", "fitness"],
+};
+
+const MODALITY_TERMS = {
+  es: { remoto: ["remoto", "remota", "home office", "trabajo a distancia"], hibrido: ["hibrido", "hibrida"], presencial: ["presencial"] },
+  en: { remoto: ["remote", "work from home", "wfh"], hibrido: ["hybrid"], presencial: ["on-site", "onsite", "in-office", "in office"] },
+  it: { remoto: ["remoto", "da remoto", "smart working"], hibrido: ["ibrido"], presencial: ["in sede", "in presenza"] },
+  pt: { remoto: ["remoto", "home office", "trabalho remoto"], hibrido: ["hibrido"], presencial: ["presencial"] },
+};
+
+function detectSeniorityLevel(text, lang) {
+  const normalized = normalize(text);
+  const levels = SENIORITY_TERMS[lang];
+  for (const level of [3, 2, 1]) {
+    if (levels[level].some((term) => normalized.includes(term))) return level;
+  }
+  return null;
+}
+
+function detectIndustries(text, lang) {
+  const normalized = normalize(text);
+  return new Set(INDUSTRY_TERMS[lang].filter((term) => normalized.includes(term)));
+}
+
+function detectModality(text, lang) {
+  const normalized = normalize(text);
+  const modalities = MODALITY_TERMS[lang];
+  for (const key of ["remoto", "hibrido", "presencial"]) {
+    if (modalities[key].some((term) => normalized.includes(term))) return key;
+  }
+  return null;
+}
+
+function computeSeniorityFit(jobText, profileText, lang) {
+  const jobLevel = detectSeniorityLevel(jobText, lang);
+  if (jobLevel === null) return 100;
+  const profileLevel = detectSeniorityLevel(profileText, lang);
+  if (profileLevel === null) return 50;
+  return Math.max(0, 100 - Math.abs(jobLevel - profileLevel) * 40);
+}
+
+function computeIndustryFit(jobText, profileText, lang) {
+  const jobIndustries = detectIndustries(jobText, lang);
+  if (jobIndustries.size === 0) return 100;
+  const profileIndustries = detectIndustries(profileText, lang);
+  const overlap = [...jobIndustries].some((industry) => profileIndustries.has(industry));
+  return overlap ? 100 : 40;
+}
+
+function computeModalityFit(jobText, profileText, lang) {
+  const jobModality = detectModality(jobText, lang);
+  if (jobModality === null) return 100;
+  const profileModality = detectModality(profileText, lang);
+  if (profileModality === null) return 70;
+  return profileModality === jobModality ? 100 : 40;
+}
+
 const TRANSLATIONS = {
   es: {
     locale: "es-AR",
     fitLabels: { alto: "Fit alto", medio: "Fit medio", bajo: "Fit bajo", indeterminado: "Indeterminado" },
+    fitBreakdownLabels: { skills: "Skills", seniority: "Seniority", industria: "Industria", modalidad: "Modalidad" },
     resultsHeading: "Resultados del análisis",
     matchedHeading: "Keywords que matchearon",
     missingHeading: "Keywords que faltan",
@@ -77,6 +167,7 @@ ${nombre}`,
   en: {
     locale: "en-US",
     fitLabels: { alto: "High fit", medio: "Medium fit", bajo: "Low fit", indeterminado: "Undetermined" },
+    fitBreakdownLabels: { skills: "Skills", seniority: "Seniority", industria: "Industry", modalidad: "Work mode" },
     resultsHeading: "Analysis results",
     matchedHeading: "Matched keywords",
     missingHeading: "Missing keywords",
@@ -114,6 +205,7 @@ ${nombre}`,
   it: {
     locale: "it-IT",
     fitLabels: { alto: "Fit alto", medio: "Fit medio", bajo: "Fit basso", indeterminado: "Indeterminato" },
+    fitBreakdownLabels: { skills: "Competenze", seniority: "Seniority", industria: "Settore", modalidad: "Modalità" },
     resultsHeading: "Risultati dell'analisi",
     matchedHeading: "Keyword corrispondenti",
     missingHeading: "Keyword mancanti",
@@ -151,6 +243,7 @@ ${nombre}`,
   pt: {
     locale: "pt-BR",
     fitLabels: { alto: "Fit alto", medio: "Fit médio", bajo: "Fit baixo", indeterminado: "Indeterminado" },
+    fitBreakdownLabels: { skills: "Habilidades", seniority: "Senioridade", industria: "Setor", modalidad: "Modalidade" },
     resultsHeading: "Resultados da análise",
     matchedHeading: "Palavras-chave correspondentes",
     missingHeading: "Palavras-chave faltantes",
@@ -195,20 +288,29 @@ const UI_TRANSLATIONS = {
   es: {
     pageTitle: "Job Fit Analyzer (prueba)",
     languageSelectLabel: "Idioma",
-    appTitle: "Analizador de fit + cover letter",
-    appSubtitle: "Herramienta de prueba. Todo se procesa localmente en tu navegador, sin conexión a ninguna API real.",
+    appTitle: "Career Fit Assistant",
+    appSubtitle: "Postulá fácil, rápido e inteligente. Ganá tiempo, ganá el puesto.",
     jobTitleLabel: "Título",
     jobTitlePlaceholder: "Nombre del rol + empresa (ej: Data Analyst - Globant)",
     jobDescriptionLabel: "Descripción completa de la vacante *",
     jobDescriptionPlaceholder: "Pegá aquí el texto completo de la descripción del puesto...",
     jobLinkRefLabel: "Link de la vacante (opcional, solo referencia)",
     jobLinkRefPlaceholder: "https://... (no se procesa)",
+    startNowButton: "Comenzá",
+    viewExampleButton: "Ver Ejemplo",
+    exampleCandidateHeading: "Candidato de ejemplo",
+    exampleVacanciesHeading: "Vacantes de ejemplo",
+    exampleCloseButtonLabel: "Cerrar ejemplo",
+    exampleBadgeText: "Todo eso, para vos",
+    exampleBadgeSubtitle: "(ejemplo pre-generado)",
+    exampleCtaButton: "Probalo ahora",
+    exampleLoadError: "No se pudo cargar el ejemplo. Probá de nuevo en unos segundos.",
     addJobButton: "+ Agregar Vacante",
     maxJobsMessage: "Llegaste al máximo de 5 vacantes.",
     removeJobButtonLabel: "Eliminar esta vacante",
     cvFileLabel: "CV (PDF o Word) *",
     dropzoneHint: "o arrastrá el archivo aquí",
-    extraInfoFileLabel: "Info propia (PDF, Word o TXT) *",
+    extraInfoFileLabel: "Más sobre mí (PDF, Word o TXT)",
     analyzeButton: "Analizar",
     analyzeButtonLoading: "Analizando...",
     mailJobSelectLabel: "Vacante para el envío de mail",
@@ -224,8 +326,8 @@ const UI_TRANSLATIONS = {
       jobDescriptionRequired: "Pegá el texto completo de la descripción de la vacante.",
       cvFileRequired: "Subí tu CV en formato PDF o Word.",
       cvFileInvalidType: "El CV debe ser un archivo PDF o Word (.doc/.docx).",
-      extraInfoFileRequired: "Subí un archivo con tu información propia (PDF, Word o TXT).",
-      extraInfoFileInvalidType: "El archivo de información propia debe ser PDF, Word (.doc/.docx) o TXT.",
+      extraInfoFileRequired: "Subí tu archivo de 'Más sobre mí' (PDF, Word o TXT).",
+      extraInfoFileInvalidType: "El archivo de 'Más sobre mí' debe ser PDF, Word (.doc/.docx) o TXT.",
       trackingNoAnalysis: "Primero analizá una vacante para poder registrarla en el seguimiento.",
       trackingReadError: (msg) => `No se pudo leer el Excel existente: ${msg}`,
       submitProcessingError: (msg) => `No se pudo procesar alguno de los archivos: ${msg}`,
@@ -239,20 +341,29 @@ const UI_TRANSLATIONS = {
   en: {
     pageTitle: "Job Fit Analyzer (test)",
     languageSelectLabel: "Language",
-    appTitle: "Fit analyzer + cover letter",
-    appSubtitle: "Test tool. Everything is processed locally in your browser, with no connection to any real API.",
+    appTitle: "Career Fit Assistant",
+    appSubtitle: "Apply easy, fast, and smart. Save time, win the job.",
     jobTitleLabel: "Title",
     jobTitlePlaceholder: "Role name + company (e.g. Data Analyst - Globant)",
     jobDescriptionLabel: "Full job description *",
     jobDescriptionPlaceholder: "Paste the full job description text here...",
     jobLinkRefLabel: "Job link (optional, reference only)",
     jobLinkRefPlaceholder: "https://... (not processed)",
+    startNowButton: "Get Started",
+    viewExampleButton: "View Example",
+    exampleCandidateHeading: "Example candidate",
+    exampleVacanciesHeading: "Example job postings",
+    exampleCloseButtonLabel: "Close example",
+    exampleBadgeText: "All that, for you",
+    exampleBadgeSubtitle: "(pre-generated example)",
+    exampleCtaButton: "Try it now",
+    exampleLoadError: "The example couldn't be loaded. Try again in a few seconds.",
     addJobButton: "+ Add Job",
     maxJobsMessage: "You've reached the maximum of 5 jobs.",
     removeJobButtonLabel: "Remove this job",
     cvFileLabel: "CV (PDF or Word) *",
     dropzoneHint: "or drag the file here",
-    extraInfoFileLabel: "Your info (PDF, Word or TXT) *",
+    extraInfoFileLabel: "More about me (PDF, Word or TXT)",
     analyzeButton: "Analyze",
     analyzeButtonLoading: "Analyzing...",
     mailJobSelectLabel: "Job for sending the email",
@@ -268,8 +379,8 @@ const UI_TRANSLATIONS = {
       jobDescriptionRequired: "Paste the full job description text.",
       cvFileRequired: "Upload your CV in PDF or Word format.",
       cvFileInvalidType: "The CV must be a PDF or Word file (.doc/.docx).",
-      extraInfoFileRequired: "Upload a file with your own information (PDF, Word or TXT).",
-      extraInfoFileInvalidType: "The personal info file must be PDF, Word (.doc/.docx) or TXT.",
+      extraInfoFileRequired: "Upload your 'More about me' file (PDF, Word or TXT).",
+      extraInfoFileInvalidType: "The 'More about me' file must be PDF, Word (.doc/.docx) or TXT.",
       trackingNoAnalysis: "First analyze a job posting so it can be tracked.",
       trackingReadError: (msg) => `Could not read the existing Excel file: ${msg}`,
       submitProcessingError: (msg) => `Could not process one of the files: ${msg}`,
@@ -283,20 +394,29 @@ const UI_TRANSLATIONS = {
   it: {
     pageTitle: "Job Fit Analyzer (prova)",
     languageSelectLabel: "Lingua",
-    appTitle: "Analizzatore di fit + lettera di presentazione",
-    appSubtitle: "Strumento di prova. Tutto viene elaborato localmente nel tuo browser, senza connessione a nessuna API reale.",
+    appTitle: "Career Fit Assistant",
+    appSubtitle: "Candidati in modo facile, veloce e intelligente. Guadagna tempo, conquista il lavoro.",
     jobTitleLabel: "Titolo",
     jobTitlePlaceholder: "Nome del ruolo + azienda (es: Data Analyst - Globant)",
     jobDescriptionLabel: "Descrizione completa dell'offerta di lavoro *",
     jobDescriptionPlaceholder: "Incolla qui il testo completo della descrizione della posizione...",
     jobLinkRefLabel: "Link dell'offerta (opzionale, solo riferimento)",
     jobLinkRefPlaceholder: "https://... (non elaborato)",
+    startNowButton: "Inizia",
+    viewExampleButton: "Vedi esempio",
+    exampleCandidateHeading: "Candidato di esempio",
+    exampleVacanciesHeading: "Offerte di esempio",
+    exampleCloseButtonLabel: "Chiudi esempio",
+    exampleBadgeText: "Tutto questo, per te",
+    exampleBadgeSubtitle: "(esempio pre-generato)",
+    exampleCtaButton: "Provalo ora",
+    exampleLoadError: "Non è stato possibile caricare l'esempio. Riprova tra qualche secondo.",
     addJobButton: "+ Aggiungi offerta",
     maxJobsMessage: "Hai raggiunto il massimo di 5 offerte.",
     removeJobButtonLabel: "Rimuovi questa offerta",
     cvFileLabel: "CV (PDF o Word) *",
     dropzoneHint: "o trascina il file qui",
-    extraInfoFileLabel: "Informazioni personali (PDF, Word o TXT) *",
+    extraInfoFileLabel: "Di più su di me (PDF, Word o TXT)",
     analyzeButton: "Analizza",
     analyzeButtonLoading: "Analizzando...",
     mailJobSelectLabel: "Offerta per l'invio dell'email",
@@ -312,8 +432,8 @@ const UI_TRANSLATIONS = {
       jobDescriptionRequired: "Incolla il testo completo della descrizione dell'offerta di lavoro.",
       cvFileRequired: "Carica il tuo CV in formato PDF o Word.",
       cvFileInvalidType: "Il CV deve essere un file PDF o Word (.doc/.docx).",
-      extraInfoFileRequired: "Carica un file con le tue informazioni personali (PDF, Word o TXT).",
-      extraInfoFileInvalidType: "Il file delle informazioni personali deve essere PDF, Word (.doc/.docx) o TXT.",
+      extraInfoFileRequired: "Carica il tuo file 'Di più su di me' (PDF, Word o TXT).",
+      extraInfoFileInvalidType: "Il file 'Di più su di me' deve essere PDF, Word (.doc/.docx) o TXT.",
       trackingNoAnalysis: "Analizza prima un'offerta di lavoro per poterla registrare nel monitoraggio.",
       trackingReadError: (msg) => `Impossibile leggere il file Excel esistente: ${msg}`,
       submitProcessingError: (msg) => `Impossibile elaborare uno dei file: ${msg}`,
@@ -327,20 +447,29 @@ const UI_TRANSLATIONS = {
   pt: {
     pageTitle: "Job Fit Analyzer (teste)",
     languageSelectLabel: "Idioma",
-    appTitle: "Analisador de fit + carta de apresentação",
-    appSubtitle: "Ferramenta de teste. Tudo é processado localmente no seu navegador, sem conexão com nenhuma API real.",
+    appTitle: "Career Fit Assistant",
+    appSubtitle: "Candidate-se de forma fácil, rápida e inteligente. Ganhe tempo, conquiste a vaga.",
     jobTitleLabel: "Título",
     jobTitlePlaceholder: "Nome da função + empresa (ex: Data Analyst - Globant)",
     jobDescriptionLabel: "Descrição completa da vaga *",
     jobDescriptionPlaceholder: "Cole aqui o texto completo da descrição da vaga...",
     jobLinkRefLabel: "Link da vaga (opcional, apenas referência)",
     jobLinkRefPlaceholder: "https://... (não processado)",
+    startNowButton: "Comece",
+    viewExampleButton: "Ver Exemplo",
+    exampleCandidateHeading: "Candidato de exemplo",
+    exampleVacanciesHeading: "Vagas de exemplo",
+    exampleCloseButtonLabel: "Fechar exemplo",
+    exampleBadgeText: "Tudo isso, para você",
+    exampleBadgeSubtitle: "(exemplo pré-gerado)",
+    exampleCtaButton: "Experimente agora",
+    exampleLoadError: "Não foi possível carregar o exemplo. Tente novamente em alguns segundos.",
     addJobButton: "+ Adicionar Vaga",
     maxJobsMessage: "Você atingiu o máximo de 5 vagas.",
     removeJobButtonLabel: "Remover esta vaga",
     cvFileLabel: "Currículo (PDF ou Word) *",
     dropzoneHint: "ou arraste o arquivo aqui",
-    extraInfoFileLabel: "Informações próprias (PDF, Word ou TXT) *",
+    extraInfoFileLabel: "Mais sobre mim (PDF, Word ou TXT)",
     analyzeButton: "Analisar",
     analyzeButtonLoading: "Analisando...",
     mailJobSelectLabel: "Vaga para o envio do e-mail",
@@ -356,8 +485,8 @@ const UI_TRANSLATIONS = {
       jobDescriptionRequired: "Cole o texto completo da descrição da vaga.",
       cvFileRequired: "Envie seu currículo em formato PDF ou Word.",
       cvFileInvalidType: "O currículo deve ser um arquivo PDF ou Word (.doc/.docx).",
-      extraInfoFileRequired: "Envie um arquivo com suas informações próprias (PDF, Word ou TXT).",
-      extraInfoFileInvalidType: "O arquivo de informações próprias deve ser PDF, Word (.doc/.docx) ou TXT.",
+      extraInfoFileRequired: "Envie seu arquivo 'Mais sobre mim' (PDF, Word ou TXT).",
+      extraInfoFileInvalidType: "O arquivo 'Mais sobre mim' deve ser PDF, Word (.doc/.docx) ou TXT.",
       trackingNoAnalysis: "Primeiro analise uma vaga para poder registrá-la no acompanhamento.",
       trackingReadError: (msg) => `Não foi possível ler o Excel existente: ${msg}`,
       submitProcessingError: (msg) => `Não foi possível processar algum dos arquivos: ${msg}`,
@@ -537,20 +666,35 @@ function extractKeywords(jobText, maxKeywords = 20) {
     .map(([word]) => word);
 }
 
-function computeFit(jobText, combinedProfileText) {
+function computeFit(jobText, combinedProfileText, lang) {
   const keywords = extractKeywords(jobText);
   if (keywords.length === 0) {
-    return { keywords: [], matched: [], missing: [], score: 0, labelKey: "indeterminado" };
+    return { keywords: [], matched: [], missing: [], score: 0, labelKey: "indeterminado", breakdown: [] };
   }
   const profileTokens = new Set(tokenize(combinedProfileText));
   const matched = keywords.filter((k) => profileTokens.has(k));
   const missing = keywords.filter((k) => !profileTokens.has(k));
-  const score = Math.round((matched.length / keywords.length) * 100);
+  const skillsScore = Math.round((matched.length / keywords.length) * 100);
+
+  const seniorityScore = computeSeniorityFit(jobText, combinedProfileText, lang);
+  const industryScore = computeIndustryFit(jobText, combinedProfileText, lang);
+  const modalityScore = computeModalityFit(jobText, combinedProfileText, lang);
+
+  const breakdown = [
+    { key: "skills", score: skillsScore },
+    { key: "seniority", score: seniorityScore },
+    { key: "industria", score: industryScore },
+    { key: "modalidad", score: modalityScore },
+  ];
+
+  const score = Math.round(
+    skillsScore * 0.55 + seniorityScore * 0.15 + industryScore * 0.15 + modalityScore * 0.15
+  );
   const labelKey =
     score >= FIT_THRESHOLD_HIGH ? "alto" :
     score >= FIT_THRESHOLD_MEDIUM ? "medio" :
     "bajo";
-  return { keywords, matched, missing, score, labelKey };
+  return { keywords, matched, missing, score, labelKey, breakdown };
 }
 
 function guessRole(jobText, lang) {
@@ -799,6 +943,35 @@ function renderKeywordList(listEl, keywords, emptyText, itemClassName) {
   }
 }
 
+function renderFitBreakdown(container, breakdown, lang) {
+  const labels = TRANSLATIONS[lang].fitBreakdownLabels;
+  container.innerHTML = "";
+  for (const { key, score } of breakdown) {
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-3 text-sm";
+
+    const label = document.createElement("span");
+    label.className = "w-24 flex-shrink-0 font-medium text-slate-600 dark:text-slate-300";
+    label.textContent = labels[key];
+    row.appendChild(label);
+
+    const track = document.createElement("div");
+    track.className = "h-2 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700";
+    const fill = document.createElement("div");
+    fill.className = "h-full rounded-full bg-blue-500 dark:bg-blue-400";
+    fill.style.width = `${score}%`;
+    track.appendChild(fill);
+    row.appendChild(track);
+
+    const value = document.createElement("span");
+    value.className = "w-10 flex-shrink-0 text-right text-slate-500 dark:text-slate-400";
+    value.textContent = `${score}%`;
+    row.appendChild(value);
+
+    container.appendChild(row);
+  }
+}
+
 const BADGE_VARIANT_CLASSES = {
   alto: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   medio: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
@@ -861,6 +1034,8 @@ function renderJobDetailCard(analysis, lang, showTitle) {
   const fitScoreValue = card.querySelector('[data-role="fitScoreValue"]');
   const fitLabelBadge = card.querySelector('[data-role="fitLabelBadge"]');
   const progressBarFill = card.querySelector('[data-role="progressBarFill"]');
+  const fitBreakdownList = card.querySelector('[data-role="fitBreakdownList"]');
+  const keywordsGrid = card.querySelector('[data-role="keywordsGrid"]');
   const matchedHeading = card.querySelector('[data-role="matchedHeading"]');
   const missingHeading = card.querySelector('[data-role="missingHeading"]');
   const matchedKeywordsList = card.querySelector('[data-role="matchedKeywordsList"]');
@@ -875,10 +1050,20 @@ function renderJobDetailCard(analysis, lang, showTitle) {
   progressBarFill.className = `h-full rounded-full transition-all duration-300 ease-in-out ${PROGRESS_FILL_VARIANT_CLASSES[analysis.fitResult.labelKey]}`;
   progressBarFill.style.width = `${analysis.fitResult.score}%`;
 
-  renderKeywordList(matchedKeywordsList, analysis.fitResult.matched, t.noMatchedKeywords,
-    "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300");
-  renderKeywordList(missingKeywordsList, analysis.fitResult.missing, t.allMatchedKeywords,
-    "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300");
+  renderFitBreakdown(fitBreakdownList, analysis.fitResult.breakdown || [], lang);
+
+  // El ejemplo precargado no trae keywords (matched/missing quedan
+  // undefined, no []): en ese caso se oculta la grilla en vez de mostrar
+  // los mensajes de fallback ("Ninguna keyword matcheó."), que no aplican.
+  if (analysis.fitResult.matched === undefined || analysis.fitResult.missing === undefined) {
+    keywordsGrid.hidden = true;
+  } else {
+    keywordsGrid.hidden = false;
+    renderKeywordList(matchedKeywordsList, analysis.fitResult.matched, t.noMatchedKeywords,
+      "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300");
+    renderKeywordList(missingKeywordsList, analysis.fitResult.missing, t.allMatchedKeywords,
+      "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300");
+  }
 
   return card;
 }
@@ -924,6 +1109,12 @@ const EXPORT_TEMPLATE_CSS = `
 .export-progress-fill-medio { background: #f59e0b; }
 .export-progress-fill-bajo { background: #ef4444; }
 .export-progress-fill-indeterminado { background: #94a3b8; }
+.export-breakdown { display: flex; flex-direction: column; gap: 0.5rem; }
+.export-breakdown-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; }
+.export-breakdown-label { width: 6rem; flex-shrink: 0; font-weight: 500; color: #475569; }
+.export-breakdown-track { height: 0.5rem; flex: 1; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
+.export-breakdown-fill { height: 100%; border-radius: 999px; background: #3b82f6; }
+.export-breakdown-value { width: 2.5rem; flex-shrink: 0; text-align: right; color: #64748b; }
 .export-keywords-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .export-keywords-grid { grid-template-columns: 1fr 1fr; } }
 .export-keywords-heading { margin: 0 0 0.5rem; font-size: 0.875rem; font-weight: 600; color: #334155; }
@@ -983,6 +1174,39 @@ function buildExportKeywordColumn(heading, keywords, emptyText, pillClass) {
   return col;
 }
 
+function buildExportBreakdown(breakdown, lang) {
+  const labels = TRANSLATIONS[lang].fitBreakdownLabels;
+  const wrapper = document.createElement("div");
+  wrapper.className = "export-breakdown";
+
+  breakdown.forEach(({ key, score }) => {
+    const row = document.createElement("div");
+    row.className = "export-breakdown-row";
+
+    const label = document.createElement("span");
+    label.className = "export-breakdown-label";
+    label.textContent = labels[key];
+    row.appendChild(label);
+
+    const track = document.createElement("div");
+    track.className = "export-breakdown-track";
+    const fill = document.createElement("div");
+    fill.className = "export-breakdown-fill";
+    fill.style.width = `${score}%`;
+    track.appendChild(fill);
+    row.appendChild(track);
+
+    const value = document.createElement("span");
+    value.className = "export-breakdown-value";
+    value.textContent = `${score}%`;
+    row.appendChild(value);
+
+    wrapper.appendChild(row);
+  });
+
+  return wrapper;
+}
+
 function buildExportJobCard(analysis, lang, showTitle) {
   const t = TRANSLATIONS[lang];
   const card = document.createElement("div");
@@ -1018,11 +1242,17 @@ function buildExportJobCard(analysis, lang, showTitle) {
 
   card.appendChild(scoreRow);
 
-  const grid = document.createElement("div");
-  grid.className = "export-keywords-grid";
-  grid.appendChild(buildExportKeywordColumn(t.matchedHeading, analysis.fitResult.matched, t.noMatchedKeywords, "export-pill-matched"));
-  grid.appendChild(buildExportKeywordColumn(t.missingHeading, analysis.fitResult.missing, t.allMatchedKeywords, "export-pill-missing"));
-  card.appendChild(grid);
+  if (analysis.fitResult.breakdown && analysis.fitResult.breakdown.length > 0) {
+    card.appendChild(buildExportBreakdown(analysis.fitResult.breakdown, lang));
+  }
+
+  if (analysis.fitResult.matched !== undefined && analysis.fitResult.missing !== undefined) {
+    const grid = document.createElement("div");
+    grid.className = "export-keywords-grid";
+    grid.appendChild(buildExportKeywordColumn(t.matchedHeading, analysis.fitResult.matched, t.noMatchedKeywords, "export-pill-matched"));
+    grid.appendChild(buildExportKeywordColumn(t.missingHeading, analysis.fitResult.missing, t.allMatchedKeywords, "export-pill-missing"));
+    card.appendChild(grid);
+  }
 
   return card;
 }
@@ -1241,9 +1471,7 @@ function validateForm(cvFile, extraInfoFile, lang) {
     }
   }
 
-  if (!extraInfoFile) {
-    errors.extraInfoFile = t.extraInfoFileRequired;
-  } else {
+  if (extraInfoFile) {
     const extraExt = extraInfoFile.name.split(".").pop().toLowerCase();
     if (!EXTRA_INFO_EXTENSIONS.includes(extraExt)) {
       errors.extraInfoFile = t.extraInfoFileInvalidType;
@@ -1390,7 +1618,7 @@ async function handleSubmit(event) {
   try {
     const [cvText, extraInfoText] = await Promise.all([
       extractTextFromFile(cvFile, lang),
-      extractTextFromFile(extraInfoFile, lang),
+      extraInfoFile ? extractTextFromFile(extraInfoFile, lang) : Promise.resolve(""),
     ]);
 
     const combinedProfileText = `${cvText}\n${extraInfoText}`;
@@ -1399,7 +1627,7 @@ async function handleSubmit(event) {
       title: resolveJobTitle(job.title, index, lang),
       rawTitle: job.title,
       jobText: job.description,
-      fitResult: computeFit(job.description, combinedProfileText),
+      fitResult: computeFit(job.description, combinedProfileText, lang),
     }));
 
     lastAnalyses = analyses;
@@ -1480,6 +1708,167 @@ function setupDropzone(dropzoneEl, inputEl, fieldKey) {
   });
 }
 
+// ---- Feature "Ver Ejemplo" ----
+
+const EXAMPLE_BASE_PATH = "examples/example-1/";
+let exampleDataCache = null; // { candidato, vacantes: { marketing, finance }, resultados: { marketing, finance } }
+let exampleActiveVacancyKey = null; // "marketing" | "finance" | null (null = vista de lista)
+
+async function loadExampleData() {
+  if (exampleDataCache) return exampleDataCache;
+  const [candidato, vacanteMarketing, vacanteFinance, resultadoMarketing, resultadoFinance] = await Promise.all([
+    fetch(`${EXAMPLE_BASE_PATH}candidato.json`).then((r) => r.json()),
+    fetch(`${EXAMPLE_BASE_PATH}vacante-marketing.json`).then((r) => r.json()),
+    fetch(`${EXAMPLE_BASE_PATH}vacante-finance.json`).then((r) => r.json()),
+    fetch(`${EXAMPLE_BASE_PATH}resultado-marketing.json`).then((r) => r.json()),
+    fetch(`${EXAMPLE_BASE_PATH}resultado-finance.json`).then((r) => r.json()),
+  ]);
+  exampleDataCache = {
+    candidato,
+    vacantes: { marketing: vacanteMarketing, finance: vacanteFinance },
+    resultados: { marketing: resultadoMarketing, finance: resultadoFinance },
+  };
+  return exampleDataCache;
+}
+
+function showExampleSubView(view) {
+  document.getElementById("exampleListView").hidden = view !== "list";
+  document.getElementById("exampleResultView").hidden = view !== "result";
+}
+
+function renderExampleListView(lang) {
+  const t = UI_TRANSLATIONS[lang];
+  const candidato = exampleDataCache.candidato[lang];
+
+  document.getElementById("exampleCandidateName").textContent = candidato.nombre;
+  document.getElementById("exampleCandidateProfile").textContent = candidato.perfil;
+
+  const skillsList = document.getElementById("exampleCandidateSkills");
+  skillsList.innerHTML = "";
+  candidato.skills.forEach((skill) => {
+    const li = document.createElement("li");
+    li.textContent = skill;
+    li.className = "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+    skillsList.appendChild(li);
+  });
+
+  const vacancyList = document.getElementById("exampleVacancyList");
+  vacancyList.innerHTML = "";
+  for (const key of ["marketing", "finance"]) {
+    const vacante = exampleDataCache.vacantes[key][lang];
+    const fragment = document.getElementById("exampleVacancyTemplate").content.cloneNode(true);
+    const card = fragment.querySelector('[data-role="exampleVacancyCard"]');
+    card.querySelector('[data-role="exampleVacancyTitle"]').textContent = vacante.titulo;
+    card.querySelector('[data-role="exampleVacancyCompany"]').textContent = vacante.empresa;
+    card.querySelector('[data-role="exampleVacancyDescription"]').textContent = vacante.descripcion_completa;
+
+    const analyzeBtn = card.querySelector('[data-role="exampleAnalyzeBtn"]');
+    const loadingEl = card.querySelector('[data-role="exampleVacancyLoading"]');
+    const loadingText = card.querySelector('[data-role="exampleVacancyLoadingText"]');
+    analyzeBtn.textContent = t.analyzeButton;
+    loadingText.textContent = t.analyzeButtonLoading;
+    analyzeBtn.addEventListener("click", () => handleExampleAnalyzeClick(key, analyzeBtn, loadingEl));
+
+    vacancyList.appendChild(fragment);
+  }
+}
+
+function renderExampleResultView(lang) {
+  const key = exampleActiveVacancyKey;
+  const vacante = exampleDataCache.vacantes[key][lang];
+  const resultado = exampleDataCache.resultados[key];
+  const score = resultado.fit_score;
+  const labelKey =
+    score >= FIT_THRESHOLD_HIGH ? "alto" :
+    score >= FIT_THRESHOLD_MEDIUM ? "medio" :
+    "bajo";
+  const breakdown = resultado.fit_breakdown.map((d) => ({ key: d.dimension, score: d.score }));
+
+  const analysis = {
+    title: vacante.titulo,
+    rawTitle: vacante.titulo,
+    jobText: vacante.descripcion_completa,
+    fitResult: { score, labelKey, breakdown },
+  };
+
+  const resultCardContainer = document.getElementById("exampleResultCard");
+  resultCardContainer.innerHTML = "";
+  resultCardContainer.appendChild(renderJobDetailCard(analysis, lang, true));
+}
+
+function handleExampleAnalyzeClick(key, analyzeBtn, loadingEl) {
+  analyzeBtn.hidden = true;
+  loadingEl.hidden = false;
+  setTimeout(() => {
+    exampleActiveVacancyKey = key;
+    renderExampleResultView(getCurrentLanguage());
+    showExampleSubView("result");
+  }, 1200);
+}
+
+async function handleExampleCopyClick() {
+  if (!exampleActiveVacancyKey) return;
+  const lang = getCurrentLanguage();
+  const text = exampleDataCache.resultados[exampleActiveVacancyKey].cover_letter_text[lang];
+  const feedback = document.getElementById("exampleCopyFeedback");
+  try {
+    await navigator.clipboard.writeText(text);
+    feedback.hidden = false;
+    setTimeout(() => {
+      feedback.hidden = true;
+    }, 2000);
+  } catch (err) {
+    const errorEl = document.getElementById("exampleLoadError");
+    errorEl.textContent = UI_TRANSLATIONS[lang].errors.copyFailed;
+    errorEl.hidden = false;
+  }
+}
+
+async function openExampleOverlay() {
+  const lang = getCurrentLanguage();
+  const errorEl = document.getElementById("exampleLoadError");
+  errorEl.hidden = true;
+  exampleActiveVacancyKey = null;
+  document.getElementById("realFormContent").hidden = true;
+  document.getElementById("exampleOverlay").hidden = false;
+  showExampleSubView("list");
+  try {
+    await loadExampleData();
+    renderExampleListView(lang);
+  } catch (err) {
+    errorEl.textContent = UI_TRANSLATIONS[lang].exampleLoadError;
+    errorEl.hidden = false;
+  }
+}
+
+function closeExampleOverlay() {
+  document.getElementById("exampleOverlay").hidden = true;
+  document.getElementById("realFormContent").hidden = false;
+  exampleActiveVacancyKey = null;
+}
+
+function handleStartNowClick() {
+  closeExampleOverlay();
+  const firstTitleInput = document.querySelector('[data-role="jobTitleInput"]');
+  if (firstTitleInput) {
+    firstTitleInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    firstTitleInput.focus();
+  }
+}
+
+// Repinta la sub-vista del ejemplo actualmente visible (lista o resultado)
+// en el idioma nuevo, sin volver a pedir los JSON — mismo espíritu que
+// retranslateResults() para el flujo real.
+function retranslateExampleOverlay(lang) {
+  if (!exampleDataCache) return;
+  if (document.getElementById("exampleOverlay").hidden) return;
+  if (exampleActiveVacancyKey === null) {
+    renderExampleListView(lang);
+  } else {
+    renderExampleResultView(lang);
+  }
+}
+
 document.getElementById("jobForm").addEventListener("submit", handleSubmit);
 document.getElementById("copyDraftBtn").addEventListener("click", handleCopyClick);
 document.getElementById("sendGmailBtn").addEventListener("click", handleSendGmailClick);
@@ -1491,6 +1880,11 @@ document.getElementById("cvFile").addEventListener("change", () => clearFieldInv
 document.getElementById("extraInfoFile").addEventListener("change", () => clearFieldInvalid("extraInfoFile"));
 setupDropzone(document.getElementById("cvDropzone"), document.getElementById("cvFile"), "cvFile");
 setupDropzone(document.getElementById("extraInfoDropzone"), document.getElementById("extraInfoFile"), "extraInfoFile");
+document.getElementById("startNowBtn").addEventListener("click", handleStartNowClick);
+document.getElementById("viewExampleBtn").addEventListener("click", openExampleOverlay);
+document.getElementById("exampleCloseBtn").addEventListener("click", closeExampleOverlay);
+document.getElementById("exampleCtaBtn").addEventListener("click", handleStartNowClick);
+document.getElementById("exampleCopyCoverLetterBtn").addEventListener("click", handleExampleCopyClick);
 
 createJobBlock();
 
@@ -1499,6 +1893,7 @@ document.getElementById("languageSelect").addEventListener("change", () => {
   const lang = getCurrentLanguage();
   applyTranslations(lang);
   retranslateResults(lang);
+  retranslateExampleOverlay(lang);
 });
 
 initTheme();

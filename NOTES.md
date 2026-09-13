@@ -44,6 +44,54 @@
       Tailwind CDN), quedando 100% autocontenido y viewable offline. Nombre
       de archivo sanitizado a `[a-z0-9-]` con fallback genérico
       (`analisis-fit.pdf`) cuando no se detecta un nombre en el CV.
+- [x] Rebranding: título "Career Fit Assistant" (igual en los 4 idiomas,
+      tratado como nombre de producto) y subtítulo nuevo ("Postulá fácil,
+      rápido e inteligente. Ganá tiempo, ganá el puesto.", traducido a
+      EN/IT/PT).
+- [x] Campo "Más sobre mí" (ex "Info propia") ahora es opcional: si no se
+      sube archivo, el análisis corre solo con el CV (`combinedProfileText`
+      cae a solo CV, sin tirar error). Label y mensaje de error de tipo de
+      archivo inválido renombrados en los 4 idiomas.
+- [x] Fit breakdown por dimensiones en el motor real: además del score por
+      keywords ("skills"), `computeFit` ahora calcula 3 dimensiones más
+      vía heurísticas de palabras clave por idioma (`SENIORITY_TERMS`,
+      `INDUSTRY_TERMS`, `MODALITY_TERMS` en `app.js`):
+      - **Seniority**: compara el nivel (junior/semi-senior/senior)
+        detectado en la vacante vs. el perfil.
+      - **Industria**: compara rubros detectados en la vacante vs. el
+        perfil (lista curada de ~20 sectores por idioma).
+      - **Modalidad**: compara remoto/híbrido/presencial mencionado en la
+        vacante vs. el perfil.
+      Cuando la vacante no menciona una dimensión, esa dimensión da 100
+      automáticamente — el score combinado (`skills*0.55 + otras*0.15`
+      c/u) coincide con el score de solo-keywords de antes en el caso más
+      común (vacantes que no mencionan seniority/industria/modalidad
+      explícitamente). El breakdown se muestra como 4 barras chicas en la
+      card de resultado (`renderFitBreakdown`) y también en el export
+      PDF/HTML (`buildExportBreakdown`).
+- [x] Caso de uso precargado ("Ver Ejemplo"): dos botones arriba del
+      bloque de vacante del formulario — "Comenzá" (primario) y "Ver
+      Ejemplo" (secundario). "Ver Ejemplo" swap-ea el contenido del mismo
+      `<form>` (no es un overlay posicionado, es un toggle entre
+      `#realFormContent` y `#exampleOverlay`, evitando problemas de
+      z-index/alto) mostrando un candidato ficticio (ex-atleta olímpica
+      pivotando a corporate) y 2 vacantes de ejemplo, cada una con su
+      botón "Analizar". Los 5 JSON de datos viven en
+      `/examples/example-1/` (`candidato.json`, `vacante-marketing.json`,
+      `vacante-finance.json`, `resultado-marketing.json`,
+      `resultado-finance.json`), traducidos a los 4 idiomas, y se cargan
+      con `fetch()` (requiere servir la app por HTTP — GitHub Pages en
+      producción — no funciona abriendo `index.html` directo con
+      `file://`). Al analizar una vacante del ejemplo: loading simulado de
+      1.2s → resultado reutilizando `renderJobDetailCard` (mismo
+      componente que el flujo real, con el breakdown de dimensiones ya
+      calculado y sin grilla de keywords, que el ejemplo no trae) + badge
+      "Todo eso, para vos" / "(ejemplo pre-generado)" + botón "Copiar
+      cover letter" (copia `cover_letter_text` del idioma activo) + CTA
+      "Probalo ahora" que cierra el overlay y vuelve al formulario real.
+      Cambiar de idioma con el overlay abierto repinta la sub-vista activa
+      con los datos ya cacheados, sin volver a pedir los JSON
+      (`retranslateExampleOverlay`).
 
 ### Fix aplicado: selector de idioma
 
@@ -71,8 +119,38 @@ Fix: se separó el pintado de resultados (`paintResults`) del "revelado"
 resultados ya visibles (si hay un análisis previo) preservando la vacante
 elegida en el selector de mail, sin re-disparar el fade-in ni el scroll.
 
+### Gotcha de Tailwind: `hidden` + utility de `display` en el mismo elemento
+
+Al construir "Ver Ejemplo" apareció un bug real: el loading de una vacante
+del ejemplo (spinner + "Analizando...") se mostraba siempre, aunque el
+elemento tuviera el atributo `hidden`. Causa: el elemento combinaba
+`hidden` con una clase de Tailwind que también fija `display` (`class="flex
+items-center gap-3"` en ese caso). La regla nativa `[hidden]{display:none}`
+del navegador y la regla `.flex{display:flex}` de Tailwind tienen
+especificidad CSS equivalente, y como la hoja de Tailwind se inyecta
+después de la hoja de estilos por defecto del navegador, `.flex` termina
+ganando la cascada — el elemento nunca llega a ocultarse por más que
+`el.hidden = true` esté seteado correctamente en JS.
+
+Mismo problema se encontró (preventivamente, antes de que se manifestara)
+en `keywordsGrid` de `jobDetailTemplate`, que combinaba `hidden` (togglable
+por JS para el caso del ejemplo, que no trae keywords) con `class="grid
+gap-6 sm:grid-cols-2"`.
+
+Fix en ambos casos: mover la clase de `display` (`flex`/`grid`) a un `<div>`
+interno, dejando el `hidden` en un contenedor externo sin ninguna utility
+de `display` compitiendo. Regla general para el resto del proyecto: nunca
+combinar `hidden` con `flex`/`grid`/`inline-flex`/`block` u otra utility de
+`display` en el mismo elemento cuando ese `hidden` se togglea por JS —
+envolver en un wrapper en su lugar.
+
 ## Próximos pasos — orden recomendado
 
 No quedan puntos pendientes de la planificación original. Próxima sesión:
 definir con el usuario qué sigue (nuevas features, pulido, o cerrar la
 herramienta de prueba como está).
+
+Nota técnica: desde que existe "Ver Ejemplo" (`fetch()` a
+`/examples/example-1/*.json`), la app dejó de ser 100% `file://`-friendly
+— necesita servirse por HTTP (GitHub Pages en producción; un servidor
+estático local al probar) para que esos JSON carguen sin error de CORS.

@@ -1,0 +1,50 @@
+{
+  "es": {
+    "nombre": "Camila Rivas",
+    "perfil": "Ex nadadora olímpica (representó a Argentina en dos Juegos Olímpicos) y creadora de contenido fitness con más de 220.000 seguidores en redes. Después del retiro competitivo, se formó en gestión de marca y análisis de datos, y hoy busca dar el salto al mundo corporate.",
+    "experiencia": [
+      "Atleta profesional de natación, Selección Argentina (8 años) — disciplina, trabajo en equipo y gestión de la presión bajo objetivos de alto rendimiento.",
+      "Creadora de contenido fitness y bienestar (Instagram/TikTok, +220.000 seguidores) — estrategia de marca personal, calendario editorial y colaboraciones con marcas deportivas.",
+      "Embajadora de marca para 3 marcas deportivas locales — negociación de contratos de auspicio y presentación de resultados de campaña."
+    ],
+    "skills": ["Gestión de marca personal", "Redes sociales y contenido", "Comunicación pública", "Trabajo en equipo de alto rendimiento", "Negociación de auspicios", "Excel básico", "Disciplina y planificación de objetivos"],
+    "educacion": ["Diplomatura en Marketing Digital, Universidad de Buenos Aires (en curso)", "Curso de Análisis de Datos para Redes Sociales, Coderhouse"],
+    "marca_personal": "Reconocida en el ambiente deportivo y fitness por su cercanía con la audiencia y su capacidad de traducir disciplina atlética en hábitos de bienestar accesibles para el público general."
+  },
+  "en": {
+    "nombre": "Camila Rivas",
+    "perfil": "Former Olympic swimmer (represented Argentina at two Olympic Games) and fitness content creator with over 220,000 followers. After retiring from competition, she trained in brand management and data analysis, and is now looking to make the leap into the corporate world.",
+    "experiencia": [
+      "Professional swimmer, Argentine National Team (8 years) — discipline, teamwork, and pressure management under high-performance goals.",
+      "Fitness and wellness content creator (Instagram/TikTok, 220,000+ followers) — personal brand strategy, editorial calendar, and collaborations with sports brands.",
+      "Brand ambassador for 3 local sports brands — sponsorship contract negotiation and campaign results reporting."
+    ],
+    "skills": ["Personal brand management", "Social media & content", "Public communication", "High-performance teamwork", "Sponsorship negotiation", "Basic Excel", "Discipline & goal planning"],
+    "educacion": ["Digital Marketing Diploma, University of Buenos Aires (in progress)", "Data Analysis for Social Media course, Coderhouse"],
+    "marca_personal": "Well known in the sports and fitness community for her closeness to her audience and her ability to translate athletic discipline into wellness habits accessible to the general public."
+  },
+  "it": {
+    "nombre": "Camila Rivas",
+    "perfil": "Ex nuotatrice olimpica (ha rappresentato l'Argentina in due edizioni dei Giochi Olimpici) e content creator fitness con oltre 220.000 follower. Dopo il ritiro dalle competizioni, si è formata in brand management e analisi dei dati, e oggi punta al mondo corporate.",
+    "experiencia": [
+      "Nuotatrice professionista, Nazionale Argentina (8 anni) — disciplina, lavoro di squadra e gestione della pressione in contesti di alta prestazione.",
+      "Content creator fitness e benessere (Instagram/TikTok, oltre 220.000 follower) — strategia di brand personale, calendario editoriale e collaborazioni con marchi sportivi.",
+      "Ambassador per 3 marchi sportivi locali — negoziazione di contratti di sponsorizzazione e presentazione dei risultati delle campagne."
+    ],
+    "skills": ["Gestione del brand personale", "Social media e contenuti", "Comunicazione pubblica", "Lavoro di squadra ad alte prestazioni", "Negoziazione di sponsorizzazioni", "Excel di base", "Disciplina e pianificazione degli obiettivi"],
+    "educacion": ["Diploma in Marketing Digitale, Università di Buenos Aires (in corso)", "Corso di Analisi dei Dati per i Social Media, Coderhouse"],
+    "marca_personal": "Conosciuta nell'ambiente sportivo e fitness per la sua vicinanza al pubblico e la capacità di tradurre la disciplina atletica in abitudini di benessere accessibili a tutti."
+  },
+  "pt": {
+    "nombre": "Camila Rivas",
+    "perfil": "Ex-nadadora olímpica (representou a Argentina em dois Jogos Olímpicos) e criadora de conteúdo fitness com mais de 220.000 seguidores. Depois de se aposentar das competições, se formou em gestão de marca e análise de dados, e hoje busca dar o salto para o mundo corporativo.",
+    "experiencia": [
+      "Nadadora profissional, Seleção Argentina (8 anos) — disciplina, trabalho em equipe e gestão da pressão em contextos de alta performance.",
+      "Criadora de conteúdo fitness e bem-estar (Instagram/TikTok, +220.000 seguidores) — estratégia de marca pessoal, calendário editorial e parcerias com marcas esportivas.",
+      "Embaixadora de marca para 3 marcas esportivas locais — negociação de contratos de patrocínio e apresentação de resultados de campanha."
+    ],
+    "skills": ["Gestão de marca pessoal", "Redes sociais e conteúdo", "Comunicação pública", "Trabalho em equipe de alta performance", "Negociação de patrocínios", "Excel básico", "Disciplina e planejamento de metas"],
+    "educacion": ["Diplomatura em Marketing Digital, Universidade de Buenos Aires (em andamento)", "Curso de Análise de Dados para Redes Sociais, Coderhouse"],
+    "marca_personal": "Reconhecida no meio esportivo e fitness por sua proximidade com o público e sua capacidade de traduzir disciplina atlética em hábitos de bem-estar acessíveis ao público em geral."
+  }
+}

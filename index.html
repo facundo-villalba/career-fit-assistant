@@ -34,8 +34,8 @@
 
   <div class="flex flex-wrap-reverse items-start justify-between gap-4">
     <div class="min-w-[220px] flex-1">
-      <h1 data-i18n="appTitle" class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-slate-100">Analizador de fit + cover letter</h1>
-      <p data-i18n="appSubtitle" class="mt-1 text-sm text-slate-500 dark:text-slate-400">Herramienta de prueba. Todo se procesa localmente en tu navegador, sin conexión a ninguna API real.</p>
+      <h1 data-i18n="appTitle" class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-slate-100">Career Fit Assistant</h1>
+      <p data-i18n="appSubtitle" class="mt-1 text-sm text-slate-500 dark:text-slate-400">Postulá fácil, rápido e inteligente. Ganá tiempo, ganá el puesto.</p>
     </div>
     <div class="flex items-center justify-end gap-3">
       <button type="button" id="themeToggleBtn" role="switch" aria-checked="false" data-i18n-aria-label="themeToggleLabel"
@@ -62,6 +62,14 @@
   </div>
 
   <form id="jobForm" novalidate class="space-y-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8 dark:bg-slate-800 dark:shadow-none dark:ring-slate-700">
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="button" id="startNowBtn" data-i18n="startNowButton"
+        class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 dark:shadow-none dark:hover:bg-blue-500"></button>
+      <button type="button" id="viewExampleBtn" data-i18n="viewExampleButton"
+        class="inline-flex items-center gap-2 rounded-full border border-blue-600 bg-white px-5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-blue-400 dark:bg-slate-800 dark:text-blue-400 dark:shadow-none dark:hover:bg-slate-700"></button>
+    </div>
+
+    <div id="realFormContent" class="space-y-6">
     <div id="jobBlocksContainer" class="space-y-4"></div>
 
     <template id="jobBlockTemplate">
@@ -110,9 +118,9 @@
     </div>
 
     <div class="space-y-1.5">
-      <label for="extraInfoFile" data-i18n="extraInfoFileLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Info propia (PDF, Word o TXT) *</label>
+      <label for="extraInfoFile" data-i18n="extraInfoFileLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Más sobre mí (PDF, Word o TXT)</label>
       <div id="extraInfoDropzone" class="flex flex-col items-start gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-4 transition-colors duration-200 ease-in-out dark:border-slate-600 dark:bg-slate-900/40">
-        <input type="file" id="extraInfoFile" accept=".pdf,.doc,.docx,.txt" required aria-describedby="extraInfoFileError"
+        <input type="file" id="extraInfoFile" accept=".pdf,.doc,.docx,.txt" aria-describedby="extraInfoFileError"
           class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-slate-300 dark:file:bg-blue-950/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50">
         <p data-i18n="dropzoneHint" class="m-0 text-xs text-slate-400 dark:text-slate-500">o arrastrá el archivo aquí</p>
       </div>
@@ -124,6 +132,71 @@
       Analizar
     </button>
     <p id="formError" class="text-sm font-medium text-red-600 dark:text-red-400" role="alert" hidden></p>
+    </div>
+
+    <div id="exampleOverlay" hidden class="relative space-y-6">
+      <button type="button" id="exampleCloseBtn"
+        class="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition-colors duration-200 ease-in-out hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-400">
+        <span aria-hidden="true">✕</span>
+        <span class="sr-only" data-i18n="exampleCloseButtonLabel"></span>
+      </button>
+
+      <p id="exampleLoadError" class="text-sm font-medium text-red-600 dark:text-red-400" role="alert" hidden></p>
+
+      <div id="exampleListView" class="space-y-6 pr-8">
+        <div class="space-y-2">
+          <h3 id="exampleCandidateHeading" data-i18n="exampleCandidateHeading" class="text-base font-semibold text-slate-800 dark:text-slate-200"></h3>
+          <div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <p id="exampleCandidateName" class="font-semibold text-slate-900 dark:text-slate-100"></p>
+            <p id="exampleCandidateProfile" class="mt-1 text-sm text-slate-600 dark:text-slate-400"></p>
+            <ul id="exampleCandidateSkills" class="mt-3 flex flex-wrap gap-2"></ul>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h3 id="exampleVacanciesHeading" data-i18n="exampleVacanciesHeading" class="text-base font-semibold text-slate-800 dark:text-slate-200"></h3>
+          <div id="exampleVacancyList" class="space-y-4"></div>
+        </div>
+      </div>
+
+      <template id="exampleVacancyTemplate">
+        <div data-role="exampleVacancyCard" class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+          <div>
+            <p data-role="exampleVacancyTitle" class="font-semibold text-slate-900 dark:text-slate-100"></p>
+            <p data-role="exampleVacancyCompany" class="text-sm text-slate-500 dark:text-slate-400"></p>
+          </div>
+          <p data-role="exampleVacancyDescription" class="text-sm text-slate-600 dark:text-slate-400"></p>
+          <button type="button" data-role="exampleAnalyzeBtn" data-i18n="analyzeButton"
+            class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 dark:shadow-none dark:hover:bg-blue-500"></button>
+          <div data-role="exampleVacancyLoading" hidden>
+            <div class="flex items-center gap-3">
+              <div class="h-6 w-6 flex-shrink-0 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600 dark:border-blue-900 dark:border-t-blue-400"></div>
+              <p data-role="exampleVacancyLoadingText" class="text-sm font-medium text-blue-800 dark:text-blue-300"></p>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <div id="exampleResultView" hidden class="space-y-6">
+        <div>
+          <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" data-i18n="exampleBadgeText"></span>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" data-i18n="exampleBadgeSubtitle"></p>
+        </div>
+
+        <div id="exampleResultCard"></div>
+
+        <div class="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-6 dark:border-slate-700">
+          <button type="button" id="exampleCopyCoverLetterBtn" data-i18n="copyDraftButton"
+            class="inline-flex items-center gap-2 rounded-full border border-blue-600 bg-white px-5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-blue-400 dark:bg-slate-800 dark:text-blue-400 dark:shadow-none dark:hover:bg-slate-700"></button>
+          <span id="exampleCopyFeedback" data-i18n="copyFeedback" class="text-sm font-medium text-green-600 dark:text-green-400" hidden></span>
+        </div>
+
+        <div class="border-t border-slate-200 pt-6 dark:border-slate-700">
+          <button type="button" id="exampleCtaBtn" data-i18n="exampleCtaButton"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 sm:w-auto dark:shadow-none dark:hover:bg-blue-500"></button>
+        </div>
+      </div>
+    </div>
   </form>
 
   <div id="loadingSection" hidden class="rounded-2xl bg-blue-50 p-6 opacity-0 ring-1 ring-blue-100 transition-opacity duration-300 ease-in-out dark:bg-blue-950/40 dark:ring-blue-900/60" aria-live="polite">
@@ -159,14 +232,18 @@
           </div>
         </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
-          <div>
-            <h4 data-role="matchedHeading" class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300"></h4>
-            <ul data-role="matchedKeywordsList" class="flex flex-wrap gap-2"></ul>
-          </div>
-          <div>
-            <h4 data-role="missingHeading" class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300"></h4>
-            <ul data-role="missingKeywordsList" class="flex flex-wrap gap-2"></ul>
+        <div data-role="fitBreakdownList" class="space-y-2"></div>
+
+        <div data-role="keywordsGrid">
+          <div class="grid gap-6 sm:grid-cols-2">
+            <div>
+              <h4 data-role="matchedHeading" class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300"></h4>
+              <ul data-role="matchedKeywordsList" class="flex flex-wrap gap-2"></ul>
+            </div>
+            <div>
+              <h4 data-role="missingHeading" class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300"></h4>
+              <ul data-role="missingKeywordsList" class="flex flex-wrap gap-2"></ul>
+            </div>
           </div>
         </div>
       </div>
@@ -219,6 +296,6 @@
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.7.2/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
