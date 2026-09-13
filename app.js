@@ -217,6 +217,9 @@ const UI_TRANSLATIONS = {
     trackingHeading: "Seguimiento de postulaciones",
     existingExcelLabel: "Subir Excel existente (opcional, para agregar esta postulación sin perder las anteriores)",
     downloadTrackingButton: "Descargar seguimiento",
+    themeToggleLabel: "Tema oscuro",
+    downloadAnalysisButton: "Descargar análisis",
+    analysisFormatLabel: "Formato del documento",
     errors: {
       jobDescriptionRequired: "Pegá el texto completo de la descripción de la vacante.",
       cvFileRequired: "Subí tu CV en formato PDF o Word.",
@@ -229,6 +232,8 @@ const UI_TRANSLATIONS = {
       copyFailed: "No se pudo copiar al portapapeles.",
       docNotSupported: "Los archivos .doc (Word 97-2003) no se pueden leer en el navegador. Guardá el archivo como .docx o .pdf.",
       unsupportedFormat: (ext) => `Formato no soportado: .${ext}`,
+      analysisDownloadNoAnalysis: "Primero analizá una vacante para poder descargar el análisis.",
+      analysisDownloadError: (msg) => `No se pudo generar el documento: ${msg}`,
     },
   },
   en: {
@@ -256,6 +261,9 @@ const UI_TRANSLATIONS = {
     trackingHeading: "Application tracking",
     existingExcelLabel: "Upload existing Excel (optional, to add this application without losing previous ones)",
     downloadTrackingButton: "Download tracking",
+    themeToggleLabel: "Dark theme",
+    downloadAnalysisButton: "Download analysis",
+    analysisFormatLabel: "Document format",
     errors: {
       jobDescriptionRequired: "Paste the full job description text.",
       cvFileRequired: "Upload your CV in PDF or Word format.",
@@ -268,6 +276,8 @@ const UI_TRANSLATIONS = {
       copyFailed: "Could not copy to clipboard.",
       docNotSupported: ".doc files (Word 97-2003) cannot be read in the browser. Save the file as .docx or .pdf.",
       unsupportedFormat: (ext) => `Unsupported format: .${ext}`,
+      analysisDownloadNoAnalysis: "First analyze a job posting so the analysis can be downloaded.",
+      analysisDownloadError: (msg) => `Could not generate the document: ${msg}`,
     },
   },
   it: {
@@ -295,6 +305,9 @@ const UI_TRANSLATIONS = {
     trackingHeading: "Monitoraggio delle candidature",
     existingExcelLabel: "Carica Excel esistente (opzionale, per aggiungere questa candidatura senza perdere le precedenti)",
     downloadTrackingButton: "Scarica monitoraggio",
+    themeToggleLabel: "Tema scuro",
+    downloadAnalysisButton: "Scarica analisi",
+    analysisFormatLabel: "Formato del documento",
     errors: {
       jobDescriptionRequired: "Incolla il testo completo della descrizione dell'offerta di lavoro.",
       cvFileRequired: "Carica il tuo CV in formato PDF o Word.",
@@ -307,6 +320,8 @@ const UI_TRANSLATIONS = {
       copyFailed: "Impossibile copiare negli appunti.",
       docNotSupported: "I file .doc (Word 97-2003) non possono essere letti nel browser. Salva il file come .docx o .pdf.",
       unsupportedFormat: (ext) => `Formato non supportato: .${ext}`,
+      analysisDownloadNoAnalysis: "Analizza prima un'offerta di lavoro per poter scaricare l'analisi.",
+      analysisDownloadError: (msg) => `Impossibile generare il documento: ${msg}`,
     },
   },
   pt: {
@@ -334,6 +349,9 @@ const UI_TRANSLATIONS = {
     trackingHeading: "Acompanhamento de candidaturas",
     existingExcelLabel: "Enviar Excel existente (opcional, para adicionar esta candidatura sem perder as anteriores)",
     downloadTrackingButton: "Baixar acompanhamento",
+    themeToggleLabel: "Tema escuro",
+    downloadAnalysisButton: "Baixar análise",
+    analysisFormatLabel: "Formato do documento",
     errors: {
       jobDescriptionRequired: "Cole o texto completo da descrição da vaga.",
       cvFileRequired: "Envie seu currículo em formato PDF ou Word.",
@@ -346,6 +364,8 @@ const UI_TRANSLATIONS = {
       copyFailed: "Não foi possível copiar para a área de transferência.",
       docNotSupported: "Arquivos .doc (Word 97-2003) não podem ser lidos no navegador. Salve o arquivo como .docx ou .pdf.",
       unsupportedFormat: (ext) => `Formato não suportado: .${ext}`,
+      analysisDownloadNoAnalysis: "Primeiro analise uma vaga para poder baixar a análise.",
+      analysisDownloadError: (msg) => `Não foi possível gerar o documento: ${msg}`,
     },
   },
 };
@@ -367,12 +387,37 @@ function applyTranslations(lang) {
     if (typeof value === "string") el.placeholder = value;
   });
 
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+    const value = t[el.getAttribute("data-i18n-aria-label")];
+    if (typeof value === "string") el.setAttribute("aria-label", value);
+  });
+
   document.documentElement.lang = lang;
 
   const analyzeBtn = document.getElementById("analyzeBtn");
   if (!analyzeBtn.disabled) {
     analyzeBtn.textContent = t.analyzeButton;
   }
+}
+
+const THEME_STORAGE_KEY = "theme";
+
+function isDarkMode() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function setTheme(isDark) {
+  document.documentElement.classList.toggle("dark", isDark);
+  localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light");
+  document.getElementById("themeToggleBtn").setAttribute("aria-checked", String(isDark));
+}
+
+// El script inline en el <head> de index.html ya decidió el tema (leyendo
+// localStorage) antes de que Tailwind escaneara el DOM, para evitar el
+// flash de tema incorrecto. Acá solo sincronizamos el estado del switch
+// con la clase que ese script ya dejó en <html>.
+function initTheme() {
+  document.getElementById("themeToggleBtn").setAttribute("aria-checked", String(isDarkMode()));
 }
 
 let loadingIntervalId = null;
@@ -469,6 +514,17 @@ function tokenize(text) {
     .filter((t) => t.length >= 3);
 }
 
+// Para nombres de archivo: además de bajar a minúsculas y sacar tildes
+// (como normalize()), colapsa cualquier caracter fuera de [a-z0-9] a un
+// guión — el nombre sale de un heurístico sobre texto libre de un CV
+// subido por el usuario, que puede traer puntuación o caracteres inválidos
+// en nombres de archivo (\ / : * ? " < > |, etc.), no solo espacios/tildes.
+function sanitizeForFilename(text) {
+  return normalize(text)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function extractKeywords(jobText, maxKeywords = 20) {
   const freq = new Map();
   for (const token of tokenize(jobText)) {
@@ -532,6 +588,15 @@ function buildCoverLetter(jobText, cvText, fitResult, lang) {
 function buildMailSubject(title, cvText, lang) {
   const nombre = guessCandidateName(cvText, lang);
   return `${title} - ${nombre}`;
+}
+
+function buildAnalysisFilename(extension, cvText, lang) {
+  const nombre = guessCandidateName(cvText, lang);
+  // guessCandidateName cae a un placeholder entre corchetes (ej. "[Tu
+  // nombre]") cuando no detecta un nombre en el CV — sin este chequeo el
+  // archivo terminaría llamándose "analisis-fit-tu-nombre.pdf".
+  const namePart = nombre === TRANSLATIONS[lang].namePlaceholder ? "" : sanitizeForFilename(nombre);
+  return `analisis-fit${namePart ? `-${namePart}` : ""}.${extension}`;
 }
 
 const TRACKING_FILENAME = "seguimiento-postulaciones.xlsx";
@@ -625,12 +690,104 @@ async function handleDownloadTracking() {
   }
 }
 
+function buildStandaloneHtmlDocument(exportRootOuterHTML, lang) {
+  const t = TRANSLATIONS[lang];
+  return `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${t.resultsHeading}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+html, body { margin: 0; background: #f8fafc; }
+body { padding: 32px; }
+${EXPORT_TEMPLATE_CSS}
+</style>
+</head>
+<body>
+${exportRootOuterHTML}
+</body>
+</html>
+`;
+}
+
+function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function downloadAnalysisAsPdf(exportRootEl, filename) {
+  return html2pdf()
+    .set({
+      margin: 24,
+      filename,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, backgroundColor: "#f8fafc" },
+      jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"] },
+    })
+    .from(exportRootEl)
+    .save();
+}
+
+function showAnalysisDownloadError(message) {
+  const el = document.getElementById("analysisDownloadError");
+  el.textContent = message;
+  el.hidden = false;
+}
+
+function hideAnalysisDownloadError() {
+  document.getElementById("analysisDownloadError").hidden = true;
+}
+
+async function handleDownloadAnalysisClick() {
+  hideAnalysisDownloadError();
+  const lang = getCurrentLanguage();
+
+  if (lastAnalyses.length === 0) {
+    showAnalysisDownloadError(UI_TRANSLATIONS[lang].errors.analysisDownloadNoAnalysis);
+    return;
+  }
+
+  const format = document.getElementById("analysisFormatSelect").value;
+  const downloadAnalysisBtn = document.getElementById("downloadAnalysisBtn");
+  downloadAnalysisBtn.disabled = true;
+
+  const exportRoot = buildExportRoot(lastAnalyses, lang);
+  const wrapper = mountOffscreen(exportRoot);
+
+  try {
+    await document.fonts.ready;
+    const filename = buildAnalysisFilename(format, lastCvText, lang);
+    if (format === "pdf") {
+      await downloadAnalysisAsPdf(exportRoot, filename);
+    } else {
+      const html = buildStandaloneHtmlDocument(exportRoot.outerHTML, lang);
+      triggerBlobDownload(new Blob([html], { type: "text/html" }), filename);
+    }
+  } catch (err) {
+    showAnalysisDownloadError(UI_TRANSLATIONS[lang].errors.analysisDownloadError(err.message));
+  } finally {
+    wrapper.remove();
+    downloadAnalysisBtn.disabled = false;
+  }
+}
+
 function renderKeywordList(listEl, keywords, emptyText, itemClassName) {
   listEl.innerHTML = "";
   if (keywords.length === 0) {
     const li = document.createElement("li");
     li.textContent = emptyText;
-    li.className = "text-sm text-slate-500";
+    li.className = "text-sm text-slate-500 dark:text-slate-400";
     listEl.appendChild(li);
     return;
   }
@@ -643,17 +800,17 @@ function renderKeywordList(listEl, keywords, emptyText, itemClassName) {
 }
 
 const BADGE_VARIANT_CLASSES = {
-  alto: "bg-green-100 text-green-800",
-  medio: "bg-amber-100 text-amber-800",
-  bajo: "bg-red-100 text-red-800",
-  indeterminado: "bg-slate-200 text-slate-700",
+  alto: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  medio: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  bajo: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  indeterminado: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
 };
 
 const PROGRESS_FILL_VARIANT_CLASSES = {
-  alto: "bg-green-500",
-  medio: "bg-amber-500",
-  bajo: "bg-red-500",
-  indeterminado: "bg-slate-400",
+  alto: "bg-green-500 dark:bg-green-400",
+  medio: "bg-amber-500 dark:bg-amber-400",
+  bajo: "bg-red-500 dark:bg-red-400",
+  indeterminado: "bg-slate-400 dark:bg-slate-500",
 };
 
 function buildComparisonSummary(analyses, lang) {
@@ -669,17 +826,17 @@ function buildComparisonSummary(analyses, lang) {
 
   ranked.forEach((entry, rank) => {
     const li = document.createElement("li");
-    li.className = "rounded-lg bg-white p-3 text-sm ring-1 ring-slate-200";
+    li.className = "rounded-lg bg-white p-3 text-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700";
 
     const line = document.createElement("p");
-    line.className = "font-semibold text-slate-800";
+    line.className = "font-semibold text-slate-800 dark:text-slate-200";
     line.textContent = `${rank + 1}. ${entry.analysis.title} — ${entry.analysis.fitResult.score}% (${t.fitLabels[entry.analysis.fitResult.labelKey]})`;
     li.appendChild(line);
 
     if (rank === 0) {
       const matchedList = entry.analysis.fitResult.matched.slice(0, 5).join(", ") || t.noMatchedFallback;
       const justification = document.createElement("p");
-      justification.className = "mt-1 text-slate-600";
+      justification.className = "mt-1 text-slate-600 dark:text-slate-400";
       justification.textContent = t.comparisonWinner({
         puesto: entry.analysis.title,
         score: entry.analysis.fitResult.score,
@@ -719,11 +876,241 @@ function renderJobDetailCard(analysis, lang, showTitle) {
   progressBarFill.style.width = `${analysis.fitResult.score}%`;
 
   renderKeywordList(matchedKeywordsList, analysis.fitResult.matched, t.noMatchedKeywords,
-    "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800");
+    "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300");
   renderKeywordList(missingKeywordsList, analysis.fitResult.missing, t.allMatchedKeywords,
-    "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600");
+    "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300");
 
   return card;
+}
+
+// Plantilla de exportación para "Descargar análisis" (PDF/HTML): se
+// construye desde los datos (lastAnalyses), no clonando la UI en pantalla,
+// para que nunca incluya los controles de mail/tracking y siempre salga en
+// paleta clara sin importar el tema activo de la app. Usa sus propias
+// clases "export-*" con este CSS chico, en vez de las utilities de
+// Tailwind, para poder reusar el mismo string tal cual embebido en el
+// HTML autocontenido que se descarga (sin depender de Tailwind CDN al
+// abrirlo offline). Sin selectores globales (body, *) para no pisar los
+// estilos de la app cuando este CSS se inyecta en la página en vivo para
+// la captura del PDF.
+const EXPORT_TEMPLATE_CSS = `
+.export-root { width: 800px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 32px; font-family: "Inter", ui-sans-serif, system-ui, sans-serif; color: #0f172a; }
+.export-root > * + * { margin-top: 2rem; }
+.export-heading { margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+.export-comparison { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; break-inside: avoid; page-break-inside: avoid; }
+.export-comparison > * + * { margin-top: 0.75rem; }
+.export-comparison-heading { margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b; }
+.export-comparison-list { list-style: none; margin: 0; padding: 0; }
+.export-comparison-list > li + li { margin-top: 0.5rem; }
+.export-comparison-item { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 0.875rem; break-inside: avoid; page-break-inside: avoid; }
+.export-comparison-item p { margin: 0; }
+.export-comparison-item .rank-line { font-weight: 600; color: #1e293b; }
+.export-comparison-item .justification { margin-top: 0.25rem; color: #475569; }
+.export-detail > * + * { margin-top: 2rem; }
+.export-card { border-bottom: 1px solid #e2e8f0; padding-bottom: 2rem; break-inside: avoid; page-break-inside: avoid; }
+.export-card:last-child { border-bottom: none; padding-bottom: 0; }
+.export-card > * + * { margin-top: 1.5rem; }
+.export-card-title { margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b; }
+.export-score-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.export-score-value { font-size: 1.875rem; font-weight: 800; color: #0f172a; }
+.export-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.875rem; font-weight: 600; }
+.export-badge-alto { background: #dcfce7; color: #166534; }
+.export-badge-medio { background: #fef3c7; color: #92400e; }
+.export-badge-bajo { background: #fee2e2; color: #991b1b; }
+.export-badge-indeterminado { background: #e2e8f0; color: #334155; }
+.export-progress-track { height: 0.625rem; width: 100%; flex-basis: 100%; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
+.export-progress-fill { height: 100%; border-radius: 999px; }
+.export-progress-fill-alto { background: #22c55e; }
+.export-progress-fill-medio { background: #f59e0b; }
+.export-progress-fill-bajo { background: #ef4444; }
+.export-progress-fill-indeterminado { background: #94a3b8; }
+.export-keywords-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .export-keywords-grid { grid-template-columns: 1fr 1fr; } }
+.export-keywords-heading { margin: 0 0 0.5rem; font-size: 0.875rem; font-weight: 600; color: #334155; }
+.export-keywords-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.export-keyword-empty { font-size: 0.875rem; color: #64748b; }
+.export-pill { border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 500; }
+.export-pill-matched { background: #dcfce7; color: #166534; }
+.export-pill-missing { background: #f1f5f9; color: #475569; }
+`;
+
+function ensureExportStylesInjected() {
+  if (document.getElementById("analysisExportStyles")) return;
+  const style = document.createElement("style");
+  style.id = "analysisExportStyles";
+  style.textContent = EXPORT_TEMPLATE_CSS;
+  document.head.appendChild(style);
+}
+
+const EXPORT_BADGE_CLASS_BY_LABEL = {
+  alto: "export-badge-alto",
+  medio: "export-badge-medio",
+  bajo: "export-badge-bajo",
+  indeterminado: "export-badge-indeterminado",
+};
+
+const EXPORT_PROGRESS_CLASS_BY_LABEL = {
+  alto: "export-progress-fill-alto",
+  medio: "export-progress-fill-medio",
+  bajo: "export-progress-fill-bajo",
+  indeterminado: "export-progress-fill-indeterminado",
+};
+
+function buildExportKeywordColumn(heading, keywords, emptyText, pillClass) {
+  const col = document.createElement("div");
+
+  const headingEl = document.createElement("h4");
+  headingEl.className = "export-keywords-heading";
+  headingEl.textContent = heading;
+  col.appendChild(headingEl);
+
+  const list = document.createElement("ul");
+  list.className = "export-keywords-list";
+  if (keywords.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = emptyText;
+    li.className = "export-keyword-empty";
+    list.appendChild(li);
+  } else {
+    keywords.forEach((kw) => {
+      const li = document.createElement("li");
+      li.textContent = kw;
+      li.className = `export-pill ${pillClass}`;
+      list.appendChild(li);
+    });
+  }
+  col.appendChild(list);
+  return col;
+}
+
+function buildExportJobCard(analysis, lang, showTitle) {
+  const t = TRANSLATIONS[lang];
+  const card = document.createElement("div");
+  card.className = "export-card";
+
+  if (showTitle) {
+    const titleEl = document.createElement("h3");
+    titleEl.className = "export-card-title";
+    titleEl.textContent = analysis.title;
+    card.appendChild(titleEl);
+  }
+
+  const scoreRow = document.createElement("div");
+  scoreRow.className = "export-score-row";
+
+  const scoreValue = document.createElement("span");
+  scoreValue.className = "export-score-value";
+  scoreValue.textContent = `${analysis.fitResult.score}%`;
+  scoreRow.appendChild(scoreValue);
+
+  const badge = document.createElement("span");
+  badge.className = `export-badge ${EXPORT_BADGE_CLASS_BY_LABEL[analysis.fitResult.labelKey]}`;
+  badge.textContent = t.fitLabels[analysis.fitResult.labelKey];
+  scoreRow.appendChild(badge);
+
+  const track = document.createElement("div");
+  track.className = "export-progress-track";
+  const fill = document.createElement("div");
+  fill.className = `export-progress-fill ${EXPORT_PROGRESS_CLASS_BY_LABEL[analysis.fitResult.labelKey]}`;
+  fill.style.width = `${analysis.fitResult.score}%`;
+  track.appendChild(fill);
+  scoreRow.appendChild(track);
+
+  card.appendChild(scoreRow);
+
+  const grid = document.createElement("div");
+  grid.className = "export-keywords-grid";
+  grid.appendChild(buildExportKeywordColumn(t.matchedHeading, analysis.fitResult.matched, t.noMatchedKeywords, "export-pill-matched"));
+  grid.appendChild(buildExportKeywordColumn(t.missingHeading, analysis.fitResult.missing, t.allMatchedKeywords, "export-pill-missing"));
+  card.appendChild(grid);
+
+  return card;
+}
+
+function buildExportComparisonSummary(analyses, lang) {
+  const t = TRANSLATIONS[lang];
+  const ranked = analyses
+    .map((analysis, index) => ({ analysis, index }))
+    .sort((a, b) => b.analysis.fitResult.score - a.analysis.fitResult.score);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "export-comparison";
+
+  const heading = document.createElement("h3");
+  heading.className = "export-comparison-heading";
+  heading.textContent = t.comparisonHeading;
+  wrapper.appendChild(heading);
+
+  const list = document.createElement("ol");
+  list.className = "export-comparison-list";
+
+  ranked.forEach((entry, rank) => {
+    const li = document.createElement("li");
+    li.className = "export-comparison-item";
+
+    const line = document.createElement("p");
+    line.className = "rank-line";
+    line.textContent = `${rank + 1}. ${entry.analysis.title} — ${entry.analysis.fitResult.score}% (${t.fitLabels[entry.analysis.fitResult.labelKey]})`;
+    li.appendChild(line);
+
+    if (rank === 0) {
+      const matchedList = entry.analysis.fitResult.matched.slice(0, 5).join(", ") || t.noMatchedFallback;
+      const justification = document.createElement("p");
+      justification.className = "justification";
+      justification.textContent = t.comparisonWinner({
+        puesto: entry.analysis.title,
+        score: entry.analysis.fitResult.score,
+        matchedList,
+      });
+      li.appendChild(justification);
+    }
+
+    list.appendChild(li);
+  });
+
+  wrapper.appendChild(list);
+  return wrapper;
+}
+
+function buildExportRoot(analyses, lang) {
+  const t = TRANSLATIONS[lang];
+  ensureExportStylesInjected();
+
+  const root = document.createElement("div");
+  root.className = "export-root";
+
+  const heading = document.createElement("h2");
+  heading.className = "export-heading";
+  heading.textContent = t.resultsHeading;
+  root.appendChild(heading);
+
+  if (analyses.length >= 2) {
+    root.appendChild(buildExportComparisonSummary(analyses, lang));
+  }
+
+  const detailContainer = document.createElement("div");
+  detailContainer.className = "export-detail";
+  const showTitle = analyses.length > 1 || Boolean(analyses[0] && analyses[0].rawTitle);
+  analyses.forEach((analysis) => {
+    detailContainer.appendChild(buildExportJobCard(analysis, lang, showTitle));
+  });
+  root.appendChild(detailContainer);
+
+  return root;
+}
+
+// Monta un elemento fuera de la vista (pero renderizado, no display:none)
+// para poder capturarlo con html2canvas o leer su outerHTML. El wrapper es
+// el único con posicionamiento inline: exportRoot queda "limpio" para que
+// su outerHTML sirva tal cual como body del HTML autocontenido.
+function mountOffscreen(el) {
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "-9999px";
+  wrapper.style.top = "0";
+  wrapper.appendChild(el);
+  document.body.appendChild(wrapper);
+  return wrapper;
 }
 
 function populateMailJobSelect(analyses) {
@@ -742,7 +1129,7 @@ function getSelectedAnalysis() {
   return lastAnalyses[Number(select.value)];
 }
 
-function renderResults(analyses, lang) {
+function paintResults(analyses, lang) {
   const t = TRANSLATIONS[lang];
 
   document.getElementById("resultsHeading").textContent = t.resultsHeading;
@@ -766,10 +1153,26 @@ function renderResults(analyses, lang) {
   document.getElementById("sendOtherEmailBtn").textContent = t.sendOtherEmailLabel;
 
   populateMailJobSelect(analyses);
+}
+
+function renderResults(analyses, lang) {
+  paintResults(analyses, lang);
 
   const resultsSection = document.getElementById("resultsSection");
   revealWithFade(resultsSection);
   resultsSection.scrollIntoView({ behavior: "smooth" });
+}
+
+// Repinta los resultados ya visibles en el idioma nuevo al cambiar el
+// selector de idioma, sin disparar el fade-in/scroll de un análisis nuevo.
+// Preserva la vacante elegida en el selector de mail, que paintResults()
+// resetea al reconstruir sus <option>.
+function retranslateResults(lang) {
+  if (lastAnalyses.length === 0) return;
+  const mailJobSelect = document.getElementById("mailJobSelect");
+  const selectedIndex = mailJobSelect.value;
+  paintResults(lastAnalyses, lang);
+  mailJobSelect.value = selectedIndex;
 }
 
 function showFormError(message) {
@@ -791,8 +1194,8 @@ const FIELD_ERROR_MAP = {
   extraInfoFile: { inputId: "extraInfoDropzone", errorId: "extraInfoFileError" },
 };
 
-const INVALID_FIELD_CLASSES = ["border-red-400", "ring-2", "ring-red-100"];
-const VALID_FIELD_CLASSES = ["border-slate-300"];
+const INVALID_FIELD_CLASSES = ["border-red-400", "ring-2", "ring-red-100", "dark:border-red-500", "dark:ring-red-900/40"];
+const VALID_FIELD_CLASSES = ["border-slate-300", "dark:border-slate-600"];
 
 function setFieldInvalid(fieldKey, message) {
   const { inputId, errorId } = FIELD_ERROR_MAP[fieldKey];
@@ -1049,8 +1452,8 @@ function handleSendOtherEmailClick() {
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-const DROPZONE_BASE_CLASSES = ["border-slate-300", "bg-slate-50/50"];
-const DROPZONE_ACTIVE_CLASSES = ["border-blue-500", "bg-blue-50"];
+const DROPZONE_BASE_CLASSES = ["border-slate-300", "bg-slate-50/50", "dark:border-slate-600", "dark:bg-slate-900/40"];
+const DROPZONE_ACTIVE_CLASSES = ["border-blue-500", "bg-blue-50", "dark:border-blue-400", "dark:bg-blue-900/20"];
 
 function setDropzoneActive(dropzoneEl, isActive) {
   dropzoneEl.classList.remove(...(isActive ? DROPZONE_BASE_CLASSES : DROPZONE_ACTIVE_CLASSES));
@@ -1082,6 +1485,7 @@ document.getElementById("copyDraftBtn").addEventListener("click", handleCopyClic
 document.getElementById("sendGmailBtn").addEventListener("click", handleSendGmailClick);
 document.getElementById("sendOtherEmailBtn").addEventListener("click", handleSendOtherEmailClick);
 document.getElementById("downloadTrackingBtn").addEventListener("click", handleDownloadTracking);
+document.getElementById("downloadAnalysisBtn").addEventListener("click", handleDownloadAnalysisClick);
 document.getElementById("addJobBtn").addEventListener("click", createJobBlock);
 document.getElementById("cvFile").addEventListener("change", () => clearFieldInvalid("cvFile"));
 document.getElementById("extraInfoFile").addEventListener("change", () => clearFieldInvalid("extraInfoFile"));
@@ -1091,4 +1495,11 @@ setupDropzone(document.getElementById("extraInfoDropzone"), document.getElementB
 createJobBlock();
 
 applyTranslations(getCurrentLanguage());
-document.getElementById("languageSelect").addEventListener("change", () => applyTranslations(getCurrentLanguage()));
+document.getElementById("languageSelect").addEventListener("change", () => {
+  const lang = getCurrentLanguage();
+  applyTranslations(lang);
+  retranslateResults(lang);
+});
+
+initTheme();
+document.getElementById("themeToggleBtn").addEventListener("click", () => setTheme(!isDarkMode()));

@@ -7,9 +7,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  // Aplica el tema guardado ANTES de que Tailwind escanee el DOM, para
+  // evitar un flash de modo claro al recargar la página en modo oscuro.
+  // Default: modo claro (no depende de prefers-color-scheme del SO).
+  if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+  }
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
+    darkMode: "class",
     theme: {
       extend: {
         fontFamily: {
@@ -20,162 +29,188 @@
   };
 </script>
 </head>
-<body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+<body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100">
 <div class="mx-auto max-w-3xl px-4 py-8 sm:py-12 space-y-8">
 
   <div class="flex flex-wrap-reverse items-start justify-between gap-4">
     <div class="min-w-[220px] flex-1">
-      <h1 data-i18n="appTitle" class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Analizador de fit + cover letter</h1>
-      <p data-i18n="appSubtitle" class="mt-1 text-sm text-slate-500">Herramienta de prueba. Todo se procesa localmente en tu navegador, sin conexión a ninguna API real.</p>
+      <h1 data-i18n="appTitle" class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-slate-100">Analizador de fit + cover letter</h1>
+      <p data-i18n="appSubtitle" class="mt-1 text-sm text-slate-500 dark:text-slate-400">Herramienta de prueba. Todo se procesa localmente en tu navegador, sin conexión a ninguna API real.</p>
     </div>
-    <div class="flex justify-end">
-      <label for="languageSelect" data-i18n="languageSelectLabel" class="sr-only">Idioma</label>
-      <select id="languageSelect" class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition-colors duration-200 ease-in-out focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-        <option value="es" selected>Español</option>
-        <option value="en">Inglés</option>
-        <option value="it">Italiano</option>
-        <option value="pt">Portugués</option>
-      </select>
+    <div class="flex items-center justify-end gap-3">
+      <button type="button" id="themeToggleBtn" role="switch" aria-checked="false" data-i18n-aria-label="themeToggleLabel"
+        class="relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full border border-slate-300 bg-slate-100 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:focus:ring-blue-900/40">
+        <svg class="pointer-events-none absolute left-1.5 h-3.5 w-3.5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+        </svg>
+        <svg class="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-slate-400 dark:text-slate-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z"></path>
+        </svg>
+        <span id="themeToggleThumb" class="inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ease-in-out translate-x-1 dark:translate-x-7 dark:bg-slate-900"></span>
+      </button>
+      <div>
+        <label for="languageSelect" data-i18n="languageSelectLabel" class="sr-only">Idioma</label>
+        <select id="languageSelect" class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition-colors duration-200 ease-in-out focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-blue-400 dark:focus:ring-blue-900/40">
+          <option value="es" selected>Español</option>
+          <option value="en">Inglés</option>
+          <option value="it">Italiano</option>
+          <option value="pt">Portugués</option>
+        </select>
+      </div>
     </div>
   </div>
 
-  <form id="jobForm" novalidate class="space-y-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
+  <form id="jobForm" novalidate class="space-y-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8 dark:bg-slate-800 dark:shadow-none dark:ring-slate-700">
     <div id="jobBlocksContainer" class="space-y-4"></div>
 
     <template id="jobBlockTemplate">
-      <div data-role="jobBlock" class="relative space-y-4 rounded-xl border border-slate-200 p-4">
+      <div data-role="jobBlock" class="relative space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
         <button type="button" data-role="removeJobBtn"
-          class="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition-colors duration-200 ease-in-out hover:border-red-300 hover:bg-red-50 hover:text-red-600">
+          class="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition-colors duration-200 ease-in-out hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-400">
           <span aria-hidden="true">✕</span>
           <span class="sr-only" data-i18n="removeJobButtonLabel"></span>
         </button>
 
         <div class="space-y-1.5 pr-8">
-          <label data-role="jobTitleLabelEl" data-i18n="jobTitleLabel" class="block text-sm font-semibold text-slate-700"></label>
+          <label data-role="jobTitleLabelEl" data-i18n="jobTitleLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300"></label>
           <input type="text" data-role="jobTitleInput" data-i18n-placeholder="jobTitlePlaceholder"
-            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:shadow-none dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900/40">
         </div>
 
         <div class="space-y-1.5">
-          <label data-role="jobDescriptionLabelEl" data-i18n="jobDescriptionLabel" class="block text-sm font-semibold text-slate-700"></label>
+          <label data-role="jobDescriptionLabelEl" data-i18n="jobDescriptionLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300"></label>
           <textarea data-role="jobDescriptionInput" rows="8" data-i18n-placeholder="jobDescriptionPlaceholder"
-            class="w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"></textarea>
-          <p data-role="jobDescriptionError" class="text-sm font-medium text-red-600" hidden></p>
+            class="w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:shadow-none dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900/40"></textarea>
+          <p data-role="jobDescriptionError" class="text-sm font-medium text-red-600 dark:text-red-400" hidden></p>
         </div>
 
         <div class="space-y-1.5">
-          <label data-role="jobLinkLabelEl" data-i18n="jobLinkRefLabel" class="block text-sm font-semibold text-slate-700"></label>
+          <label data-role="jobLinkLabelEl" data-i18n="jobLinkRefLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300"></label>
           <input type="url" data-role="jobLinkInput" data-i18n-placeholder="jobLinkRefPlaceholder"
-            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:shadow-none dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900/40">
         </div>
       </div>
     </template>
 
     <div class="space-y-1.5">
       <button type="button" id="addJobBtn" data-i18n="addJobButton"
-        class="inline-flex items-center gap-2 rounded-full border border-blue-600 bg-white px-5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:shadow-none disabled:hover:bg-white"></button>
-      <p id="maxJobsMessage" data-i18n="maxJobsMessage" class="text-xs text-slate-500" hidden></p>
+        class="inline-flex items-center gap-2 rounded-full border border-blue-600 bg-white px-5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:shadow-none disabled:hover:bg-white dark:border-blue-400 dark:bg-slate-800 dark:text-blue-400 dark:shadow-none dark:hover:bg-slate-700 dark:disabled:border-slate-600 dark:disabled:text-slate-500 dark:disabled:hover:bg-slate-800"></button>
+      <p id="maxJobsMessage" data-i18n="maxJobsMessage" class="text-xs text-slate-500 dark:text-slate-400" hidden></p>
     </div>
 
     <div class="space-y-1.5">
-      <label for="cvFile" data-i18n="cvFileLabel" class="block text-sm font-semibold text-slate-700">CV (PDF o Word) *</label>
-      <div id="cvDropzone" class="flex flex-col items-start gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-4 transition-colors duration-200 ease-in-out">
+      <label for="cvFile" data-i18n="cvFileLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">CV (PDF o Word) *</label>
+      <div id="cvDropzone" class="flex flex-col items-start gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-4 transition-colors duration-200 ease-in-out dark:border-slate-600 dark:bg-slate-900/40">
         <input type="file" id="cvFile" accept=".pdf,.doc,.docx" required aria-describedby="cvFileError"
-          class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100">
-        <p data-i18n="dropzoneHint" class="m-0 text-xs text-slate-400">o arrastrá el archivo aquí</p>
+          class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-slate-300 dark:file:bg-blue-950/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50">
+        <p data-i18n="dropzoneHint" class="m-0 text-xs text-slate-400 dark:text-slate-500">o arrastrá el archivo aquí</p>
       </div>
-      <p id="cvFileError" class="text-sm font-medium text-red-600" hidden></p>
+      <p id="cvFileError" class="text-sm font-medium text-red-600 dark:text-red-400" hidden></p>
     </div>
 
     <div class="space-y-1.5">
-      <label for="extraInfoFile" data-i18n="extraInfoFileLabel" class="block text-sm font-semibold text-slate-700">Info propia (PDF, Word o TXT) *</label>
-      <div id="extraInfoDropzone" class="flex flex-col items-start gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-4 transition-colors duration-200 ease-in-out">
+      <label for="extraInfoFile" data-i18n="extraInfoFileLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Info propia (PDF, Word o TXT) *</label>
+      <div id="extraInfoDropzone" class="flex flex-col items-start gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-4 transition-colors duration-200 ease-in-out dark:border-slate-600 dark:bg-slate-900/40">
         <input type="file" id="extraInfoFile" accept=".pdf,.doc,.docx,.txt" required aria-describedby="extraInfoFileError"
-          class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100">
-        <p data-i18n="dropzoneHint" class="m-0 text-xs text-slate-400">o arrastrá el archivo aquí</p>
+          class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-slate-300 dark:file:bg-blue-950/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50">
+        <p data-i18n="dropzoneHint" class="m-0 text-xs text-slate-400 dark:text-slate-500">o arrastrá el archivo aquí</p>
       </div>
-      <p id="extraInfoFileError" class="text-sm font-medium text-red-600" hidden></p>
+      <p id="extraInfoFileError" class="text-sm font-medium text-red-600 dark:text-red-400" hidden></p>
     </div>
 
     <button type="submit" id="analyzeBtn"
-      class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none sm:w-auto">
+      class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none sm:w-auto dark:shadow-none dark:hover:bg-blue-500 dark:focus:ring-offset-slate-900 dark:disabled:bg-slate-700 dark:disabled:text-slate-400">
       Analizar
     </button>
-    <p id="formError" class="text-sm font-medium text-red-600" role="alert" hidden></p>
+    <p id="formError" class="text-sm font-medium text-red-600 dark:text-red-400" role="alert" hidden></p>
   </form>
 
-  <div id="loadingSection" hidden class="rounded-2xl bg-blue-50 p-6 opacity-0 ring-1 ring-blue-100 transition-opacity duration-300 ease-in-out" aria-live="polite">
+  <div id="loadingSection" hidden class="rounded-2xl bg-blue-50 p-6 opacity-0 ring-1 ring-blue-100 transition-opacity duration-300 ease-in-out dark:bg-blue-950/40 dark:ring-blue-900/60" aria-live="polite">
     <div class="flex items-center gap-4">
-      <div class="h-8 w-8 flex-shrink-0 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
-      <p id="loadingStepText" class="text-sm font-medium text-blue-800"></p>
+      <div class="h-8 w-8 flex-shrink-0 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600 dark:border-blue-900 dark:border-t-blue-400"></div>
+      <p id="loadingStepText" class="text-sm font-medium text-blue-800 dark:text-blue-300"></p>
     </div>
-    <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-blue-100">
-      <div id="loadingProgressFill" class="h-full rounded-full bg-blue-600 transition-all duration-300 ease-in-out" style="width: 0%"></div>
+    <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/60">
+      <div id="loadingProgressFill" class="h-full rounded-full bg-blue-600 transition-all duration-300 ease-in-out dark:bg-blue-400" style="width: 0%"></div>
     </div>
   </div>
 
   <section id="resultsSection" hidden aria-live="polite"
-    class="space-y-8 rounded-2xl bg-white p-6 opacity-0 shadow-sm ring-1 ring-slate-200 transition-opacity duration-300 ease-in-out sm:p-8">
-    <h2 id="resultsHeading" class="text-xl font-bold text-slate-900">Resultados del análisis</h2>
+    class="space-y-8 rounded-2xl bg-white p-6 opacity-0 shadow-sm ring-1 ring-slate-200 transition-opacity duration-300 ease-in-out sm:p-8 dark:bg-slate-800 dark:shadow-none dark:ring-slate-700">
+    <h2 id="resultsHeading" class="text-xl font-bold text-slate-900 dark:text-slate-100">Resultados del análisis</h2>
 
-    <div id="comparisonSummary" hidden class="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-      <h3 id="comparisonHeading" class="text-base font-semibold text-slate-800"></h3>
+    <div id="comparisonSummary" hidden class="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 dark:bg-slate-900/60 dark:ring-slate-700">
+      <h3 id="comparisonHeading" class="text-base font-semibold text-slate-800 dark:text-slate-200"></h3>
       <ol id="comparisonList" class="space-y-2"></ol>
     </div>
 
     <div id="resultsDetailContainer" class="space-y-8"></div>
 
     <template id="jobDetailTemplate">
-      <div data-role="jobDetailCard" class="space-y-6 border-b border-slate-200 pb-8 last:border-b-0 last:pb-0">
-        <h3 data-role="jobDetailTitle" class="text-base font-semibold text-slate-800" hidden></h3>
+      <div data-role="jobDetailCard" class="space-y-6 border-b border-slate-200 pb-8 last:border-b-0 last:pb-0 dark:border-slate-700">
+        <h3 data-role="jobDetailTitle" class="text-base font-semibold text-slate-800 dark:text-slate-200" hidden></h3>
 
         <div class="flex flex-wrap items-center gap-3">
-          <span data-role="fitScoreValue" class="text-3xl font-extrabold text-slate-900"></span>
+          <span data-role="fitScoreValue" class="text-3xl font-extrabold text-slate-900 dark:text-slate-100"></span>
           <span data-role="fitLabelBadge"></span>
-          <div class="h-2.5 w-full basis-full overflow-hidden rounded-full bg-slate-200">
+          <div class="h-2.5 w-full basis-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <div data-role="progressBarFill"></div>
           </div>
         </div>
 
         <div class="grid gap-6 sm:grid-cols-2">
           <div>
-            <h4 data-role="matchedHeading" class="mb-2 text-sm font-semibold text-slate-700"></h4>
+            <h4 data-role="matchedHeading" class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300"></h4>
             <ul data-role="matchedKeywordsList" class="flex flex-wrap gap-2"></ul>
           </div>
           <div>
-            <h4 data-role="missingHeading" class="mb-2 text-sm font-semibold text-slate-700"></h4>
+            <h4 data-role="missingHeading" class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300"></h4>
             <ul data-role="missingKeywordsList" class="flex flex-wrap gap-2"></ul>
           </div>
         </div>
       </div>
     </template>
 
-    <div class="space-y-4 border-t border-slate-200 pt-6">
+    <div class="space-y-3 border-t border-slate-200 pt-6 dark:border-slate-700">
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" id="downloadAnalysisBtn" data-i18n="downloadAnalysisButton"
+          class="inline-flex items-center gap-2 rounded-full bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-slate-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 dark:bg-slate-700 dark:shadow-none dark:hover:bg-slate-600"></button>
+        <label for="analysisFormatSelect" data-i18n="analysisFormatLabel" class="sr-only">Formato</label>
+        <select id="analysisFormatSelect" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:shadow-none dark:focus:border-blue-400 dark:focus:ring-blue-900/40">
+          <option value="pdf" selected>PDF</option>
+          <option value="html">HTML</option>
+        </select>
+      </div>
+      <p id="analysisDownloadError" class="text-sm font-medium text-red-600 dark:text-red-400" hidden></p>
+    </div>
+
+    <div class="space-y-4 border-t border-slate-200 pt-6 dark:border-slate-700">
       <div class="space-y-1.5">
-        <label for="mailJobSelect" data-i18n="mailJobSelectLabel" class="block text-sm font-semibold text-slate-700"></label>
-        <select id="mailJobSelect" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 sm:w-auto"></select>
+        <label for="mailJobSelect" data-i18n="mailJobSelectLabel" class="block text-sm font-semibold text-slate-700 dark:text-slate-300"></label>
+        <select id="mailJobSelect" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition-colors duration-200 ease-in-out focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 sm:w-auto dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:shadow-none dark:focus:border-blue-400 dark:focus:ring-blue-900/40"></select>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <button type="button" id="copyDraftBtn" data-i18n="copyDraftButton"
-          class="inline-flex items-center gap-2 rounded-full border border-blue-600 bg-white px-5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200"></button>
+          class="inline-flex items-center gap-2 rounded-full border border-blue-600 bg-white px-5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition-all duration-200 ease-in-out hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-blue-400 dark:bg-slate-800 dark:text-blue-400 dark:shadow-none dark:hover:bg-slate-700"></button>
         <button type="button" id="sendGmailBtn"
-          class="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-red-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-200">Enviar por Gmail</button>
+          class="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-red-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-200 dark:shadow-none dark:hover:bg-red-500">Enviar por Gmail</button>
         <button type="button" id="sendOtherEmailBtn"
-          class="inline-flex items-center gap-2 rounded-full bg-slate-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-slate-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300">Otro email</button>
-        <span id="copyFeedback" data-i18n="copyFeedback" class="text-sm font-medium text-green-600" hidden></span>
+          class="inline-flex items-center gap-2 rounded-full bg-slate-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-slate-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 dark:shadow-none dark:hover:bg-slate-500">Otro email</button>
+        <span id="copyFeedback" data-i18n="copyFeedback" class="text-sm font-medium text-green-600 dark:text-green-400" hidden></span>
       </div>
     </div>
 
-    <div class="space-y-4 border-t border-slate-200 pt-6">
-      <h3 data-i18n="trackingHeading" class="text-base font-semibold text-slate-800">Seguimiento de postulaciones</h3>
+    <div class="space-y-4 border-t border-slate-200 pt-6 dark:border-slate-700">
+      <h3 data-i18n="trackingHeading" class="text-base font-semibold text-slate-800 dark:text-slate-200">Seguimiento de postulaciones</h3>
       <div class="space-y-1.5">
-        <label for="existingExcelFile" data-i18n="existingExcelLabel" class="block text-xs font-medium text-slate-500">Subir Excel existente (opcional, para agregar esta postulación sin perder las anteriores)</label>
+        <label for="existingExcelFile" data-i18n="existingExcelLabel" class="block text-xs font-medium text-slate-500 dark:text-slate-400">Subir Excel existente (opcional, para agregar esta postulación sin perder las anteriores)</label>
         <input type="file" id="existingExcelFile" accept=".xlsx"
-          class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200">
+          class="text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 dark:text-slate-300 dark:file:bg-slate-700 dark:file:text-slate-200 dark:hover:file:bg-slate-600">
       </div>
       <button type="button" id="downloadTrackingBtn" data-i18n="downloadTrackingButton"
-        class="inline-flex items-center gap-2 rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-200">Descargar seguimiento</button>
-      <p id="trackingError" class="text-sm font-medium text-red-600" hidden></p>
+        class="inline-flex items-center gap-2 rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-200 dark:shadow-none dark:hover:bg-green-500">Descargar seguimiento</button>
+      <p id="trackingError" class="text-sm font-medium text-red-600 dark:text-red-400" hidden></p>
     </div>
   </section>
 </div>
@@ -183,6 +218,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.7.2/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=3"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
